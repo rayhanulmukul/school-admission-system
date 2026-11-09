@@ -557,7 +557,6 @@ function App() {
                   </div>
                 ))}
               </div>
-              <p className="admin-demo-note">Demo portal: the assignment does not include admin sign-in or role authorization.</p>
             </section>
           )}
 

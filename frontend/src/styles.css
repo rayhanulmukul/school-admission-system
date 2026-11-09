@@ -200,7 +200,6 @@ h1,h2,h3,p { margin-top: 0; }
 .admin-admitted-table { width: 100%; border-collapse: collapse; color: #415344; font-size: 12px; }
 .admin-admitted-table th { padding: 8px 10px; color: #69796c; font-size: 11px; font-weight: 700; text-align: left; border-bottom: 1px solid #e7eae3; }
 .admin-admitted-table td { padding: 9px 10px; border-bottom: 1px solid #f0f2ed; }
-.admin-demo-note { margin: 12px 0 0; color: #8c8167; font-size: 11px; }
 .page-footer { display: flex; align-items: center; gap: 7px; padding: 18px 2px 0; color: #758075; font-size: 11px; }
 .page-footer img { width: 19px; height: 19px; }.page-footer > span { margin-left: auto; }
 .mobile-header { display: none; }
