@@ -50,7 +50,7 @@ All request and response bodies use JSON. Student actions identify the student w
 | `GET` | `/me/holds` | List the requesting student’s holds |
 | `GET` | `/health` | Check API availability |
 
-Seat holds expire after the configured duration. The API returns `409 Conflict` if a class is full, a registration number already has an active application in any class, or a hold cannot transition to the requested status. The UI’s “My applications” page looks up holds with `GET /me/holds` using a birth registration number. The class-selection page does not store or show any student’s data. Hold states are `HELD`, `CONFIRMED`, `EXPIRED`, and `CANCELLED`.
+Seat holds expire after the configured duration. The API returns `409 Conflict` if a class is full, a registration number already has an active application in any class, or a hold cannot transition to the requested status. The UI’s “Check Admission” page looks up holds with `GET /me/holds` using a birth registration number. The class-selection page does not store or show any student’s data. Hold states are `HELD`, `CONFIRMED`, `EXPIRED`, and `CANCELLED`.
 
 The UI follows the supplied school-portal reference. The student page includes a locally saved profile, class search and shift filters, live seat summaries, inline reservations, applications, and an in-page demo checkout. The admin portal separately creates classes with total seats and an admission fee.
 
