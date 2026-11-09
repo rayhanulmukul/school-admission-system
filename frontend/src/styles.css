@@ -193,7 +193,7 @@ h1,h2,h3,p { margin-top: 0; }
 .back-pill { flex-shrink: 0; padding: 8px 16px; border: 1px solid #cfd9cb; border-radius: 999px; color: #17613a; background: #fff; font-size: 12px; font-weight: 600; cursor: pointer; transition: background .15s ease; }
 .back-pill:hover { background: #f3f6ef; }
 .apply-page-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-.page-content:has(.apply-page) { width: calc(100% - 56px); }
+.page-content:has(.apply-page), .page-content:has(.status-page) { width: calc(100% - 56px); }
 .apply-page { width: 100%; }
 .apply-page-header h2 { margin: 2px 0 0; color: #20342a; font-size: 20px; }
 .back-button { flex-shrink: 0; padding: 8px 16px; border: 0; border-radius: 999px; color: #fff; background: #12829c; font-size: 12px; font-weight: 650; cursor: pointer; transition: background .15s ease; }
