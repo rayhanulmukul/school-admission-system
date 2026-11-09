@@ -254,12 +254,6 @@ function App() {
 
       <main className="main-content">
         <div className="page-content">
-          <div className="breadcrumb">
-            <span>⌂</span> Admissions <span>/</span>
-            <strong>{activeView === "admin" ? "Class Management" : "Explore Classes"}</strong>
-            <span className="admissions-open"><span /> Admissions Open</span>
-          </div>
-
           {(error || notice) && (
             <div className={error ? "notice-banner error-notice" : "notice-banner success-notice"} role="status">
               <span>{error || notice}</span>
@@ -269,25 +263,6 @@ function App() {
 
           {activeView === "admissions" ? (
             <>
-              <section className="summary-grid" aria-label="Seat availability summary">
-                <article className="summary-card">
-                  <span className="summary-icon green-icon">♧</span>
-                  <span className="summary-copy">Total Seats<strong>{counts.totalSeats.toLocaleString()}</strong></span>
-                </article>
-                <article className="summary-card">
-                  <span className="summary-icon blue-icon">▣</span>
-                  <span className="summary-copy">Available Seats<strong className="green-text">{counts.availableSeats.toLocaleString()}</strong></span>
-                </article>
-                <article className="summary-card">
-                  <span className="summary-icon amber-icon">♙</span>
-                  <span className="summary-copy">Seats on Hold<strong className="amber-text">{counts.heldSeats.toLocaleString()}</strong></span>
-                </article>
-                <article className="summary-card">
-                  <span className="summary-icon green-icon">✓</span>
-                  <span className="summary-copy">Confirmed Admissions<strong className="green-text">{counts.confirmedSeats.toLocaleString()}</strong></span>
-                </article>
-              </section>
-
               <section className="class-section">
                 <div className="class-section-heading">
                   <h2>Find your class</h2>
