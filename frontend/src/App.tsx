@@ -446,72 +446,101 @@ function App() {
               <div className="apply-page-header">
                 <div>
                   <p className="eyebrow">ADMISSION 2026-2027</p>
-                  <h2>Apply for {selectedClass.name}</h2>
+                  <h2>Apply for {displayClassName(selectedClass.name)}</h2>
                 </div>
                 <button className="back-button" onClick={() => {
                   setActiveView("admissions");
                   window.scrollTo({ top: applyReturnScrollY.current });
                 }}>← Back to classes</button>
               </div>
-              <section className="applications-section" id="apply-section">
-                {selectedClass && (
-                  <section id="selected-class-panel" className="selected-class-panel" aria-label="Selected class seat details">
-                    <div className="selected-class-stats">
-                      <div className="class-stat">
-                        <small>Seats left</small>
-                        <strong className={selectedClass.availableSeats > 0 ? "green-text" : "amber-text"}>{selectedClass.availableSeats}</strong>
-                        <span>of {selectedClass.totalSeats}</span>
+              <ol className="apply-steps" aria-label="Application steps">
+                <li className="done"><span>✓</span>Choose class</li>
+                <li className={selectedHold?.status === "HELD" || selectedHold?.status === "CONFIRMED" ? "done" : "active"}><span>2</span>Student details</li>
+                <li className={selectedHold?.status === "CONFIRMED" ? "done" : selectedHold?.status === "HELD" ? "active" : ""}><span>3</span>Reserve seat</li>
+              </ol>
+              <div className="apply-layout">
+                <section className="apply-card apply-main" aria-label="Student details">
+                  {selectedHold?.status === "HELD" ? (
+                    <div className="reserve-panel">
+                      <div className="hold-card">
+                        <div>
+                          <span className="hold-label">Seat reserved for</span>
+                          <strong>{studentName.trim() || studentId.trim()}</strong>
+                        </div>
+                        <div className="hold-timer-pill">
+                          <span>Time left</span>
+                          <strong className="hold-timer">{formatRemaining(selectedHold.expiresAt, now)}</strong>
+                        </div>
                       </div>
-                      <div className="class-stat">
-                        <small>Admission fee</small>
-                        <strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong>
+                      <div className="hold-actions">
+                        <button className="apply-button pay-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void payDemo(selectedHold)}>
+                          {busyHoldId === selectedHold.holdId
+                            ? "Processing…"
+                            : selectedClass.admissionFee > 0
+                              ? `Pay ${formatCurrency(selectedClass.admissionFee)} & complete`
+                              : "Complete admission"} <span>→</span>
+                        </button>
+                        <button className="cancel-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void cancelHold(selectedHold)}>Cancel reservation</button>
                       </div>
+                      <p className="demo-disclaimer">Demo payment only. No real money is charged.</p>
                     </div>
-                    {selectedHold?.status === "HELD" ? (
-                      <div className="reserve-panel">
-                        <div className="hold-card">
-                          <div>
-                            <span className="hold-label">Seat reserved for</span>
-                            <strong>{studentName.trim() || studentId.trim()}</strong>
-                          </div>
-                          <div className="hold-timer-pill">
-                            <span>Time left</span>
-                            <strong className="hold-timer">{formatRemaining(selectedHold.expiresAt, now)}</strong>
-                          </div>
-                        </div>
-                        <div className="hold-actions">
-                          <button className="apply-button pay-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void payDemo(selectedHold)}>
-                            {busyHoldId === selectedHold.holdId
-                              ? "Processing…"
-                              : selectedClass.admissionFee > 0
-                                ? `Pay ${formatCurrency(selectedClass.admissionFee)} & complete`
-                                : "Complete admission"} <span>→</span>
-                          </button>
-                          <button className="cancel-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void cancelHold(selectedHold)}>Cancel reservation</button>
-                        </div>
-                        <p className="demo-disclaimer">Demo payment only. No real money is charged.</p>
+                  ) : selectedHold?.status === "CONFIRMED" ? (
+                    <div className="confirmed-panel"><span>✓</span><span><strong>Admission complete</strong><small>Payment received · {displayClassName(selectedClass.name)}</small></span></div>
+                  ) : (
+                    <form className="reserve-form" onSubmit={(event) => { event.preventDefault(); void holdSeat(selectedClass); }}>
+                      <div className="apply-card-heading">
+                        <h3>Student details</h3>
+                        <p>Enter the details exactly as shown on the birth certificate.</p>
                       </div>
-                    ) : selectedHold?.status === "CONFIRMED" ? (
-                      <div className="confirmed-panel"><span>✓</span><span><strong>Admission complete</strong><small>Payment received · {selectedClass.name}</small></span></div>
-                    ) : (
-                      <form className="reserve-form" onSubmit={(event) => { event.preventDefault(); void holdSeat(selectedClass); }}>
-                        <h4 className="reserve-form-heading">Student details</h4>
-                        <label>Student's full name
-                          <input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="As written on the birth certificate" maxLength={100} autoComplete="name" required />
-                        </label>
-                        <label>Birth registration number
-                          <input value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="17-digit number from the birth certificate" maxLength={80} inputMode="numeric" autoComplete="off" required />
-                        </label>
-                        <p className="reserve-note">Seat is held for 10 minutes after you submit.{selectedClass.admissionFee > 0 ? ` Payment of ${formatCurrency(selectedClass.admissionFee)} follows (demo).` : ""}</p>
+                      <label>Student's full name
+                        <input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="As written on the birth certificate" maxLength={100} autoComplete="name" required />
+                      </label>
+                      <label>Birth registration number
+                        <input value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="17-digit number from the birth certificate" maxLength={80} inputMode="numeric" autoComplete="off" required />
+                        <small className="field-hint">Use the number printed on the birth certificate.</small>
+                      </label>
+                      <div className="apply-notice">
+                        <strong>Your seat is reserved for 10 minutes</strong>
+                        <span>The reservation starts after you submit your application.</span>
+                      </div>
+                      <div className="apply-form-footer">
+                        <span>{selectedClass.admissionFee > 0 ? `Payment of ${formatCurrency(selectedClass.admissionFee)} follows (demo)` : "No payment required at this step"}</span>
                         <button className="apply-button" type="submit" disabled={selectedClass.availableSeats <= 0 || busyHoldId === selectedClass.id}>
                           {busyHoldId === selectedClass.id ? "Submitting…" : "Submit & apply"} <span>→</span>
                         </button>
-                      </form>
-                    )}
+                      </div>
+                    </form>
+                  )}
+                </section>
+                <aside className="apply-side">
+                  <section className="apply-card" aria-label="Selected class">
+                    <p className="eyebrow">Your selected class</p>
+                    <h3 className="apply-class-name">{displayClassName(selectedClass.name)}</h3>
+                    <span className="shift-tag">{shiftFor(selectedClass.name)}</span>
+                    <div className="apply-seats">
+                      <strong className={selectedClass.availableSeats > 0 ? "green-text" : "amber-text"}>{selectedClass.availableSeats}</strong>
+                      <span>of {selectedClass.totalSeats} seats available</span>
+                    </div>
+                    <div className="apply-meter" aria-hidden="true">
+                      <span style={{ width: `${selectedClass.totalSeats > 0 ? (selectedClass.availableSeats / selectedClass.totalSeats) * 100 : 0}%` }} />
+                    </div>
+                    <div className="apply-fee">
+                      <span>Admission fee</span>
+                      <strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong>
+                    </div>
+                    <span className={selectedClass.availableSeats > 0 ? "availability-tag" : "availability-tag full"}>
+                      {selectedClass.availableSeats > 0 ? "Applications open" : "Class full"}
+                    </span>
                   </section>
-                )}
-
-              </section>
+                  <section className="apply-card" aria-label="What happens next">
+                    <h3>What happens next?</h3>
+                    <ol className="apply-next">
+                      <li><span>1</span>Your seat is placed on hold</li>
+                      <li><span>2</span>Check your status under My Applications</li>
+                    </ol>
+                  </section>
+                </aside>
+              </div>
             </section>
           ) : activeView === "applications" ? (
             <section className="status-page" id="my-applications">
