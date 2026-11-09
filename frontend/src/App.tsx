@@ -357,6 +357,20 @@ function App() {
                             <span>Admission fee</span>
                             <strong>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</strong>
                           </div>
+                          <button
+                            type="button"
+                            className="apply-button"
+                            disabled={admissionClass.availableSeats <= 0}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedClassId(admissionClass.id);
+                              requestAnimationFrame(() =>
+                                document.getElementById("apply-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+                              );
+                            }}
+                          >
+                            Apply for this class <span aria-hidden="true">→</span>
+                          </button>
                         </article>
                       );
                     })}
