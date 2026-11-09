@@ -2,6 +2,13 @@
 
 A school admission portal for managing class capacity and reserving seats. The API is built with ASP.NET Core and PostgreSQL; the responsive React UI supports class administration and student seat holds.
 
+## Tech stack
+
+- Backend: C# on .NET 10 with ASP.NET Core and Entity Framework Core
+- Frontend: TypeScript with React 18 and Vite
+- Database: PostgreSQL 17
+- Tests: xUnit backend integration tests (`dotnet test`) and Playwright UI tests (`npm run test:e2e`)
+
 ## Run with Docker
 
 From the repository root, run:
