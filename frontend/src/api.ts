@@ -15,6 +15,14 @@ export type StudentHold = {
   expiresAt: string;
 };
 
+export type SeatHold = {
+  holdId: string;
+  classId: string;
+  studentId: string;
+  status: StudentHold["status"];
+  expiresAt: string;
+};
+
 const apiBaseUrl = (import.meta.env.VITE_API_URL ?? "http://localhost:8080")
   .replace(/\/$/, "");
 
@@ -54,7 +62,7 @@ export const api = {
   getHolds: (studentId: string) =>
     request<StudentHold[]>("/me/holds", {}, studentId),
   holdSeat: (classId: string, studentId: string) =>
-    request("/classes/" + encodeURIComponent(classId) + "/holds", {
+    request<SeatHold>("/classes/" + encodeURIComponent(classId) + "/holds", {
       method: "POST",
     }, studentId),
   confirmHold: (holdId: string, studentId: string) =>
