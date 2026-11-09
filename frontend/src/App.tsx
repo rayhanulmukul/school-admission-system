@@ -38,6 +38,7 @@ function App() {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [className, setClassName] = useState("");
+  const [classShift, setClassShift] = useState("Morning");
   const [totalSeats, setTotalSeats] = useState("60");
   const [admissionFee, setAdmissionFee] = useState("0");
   const [search, setSearch] = useState("");
@@ -160,8 +161,9 @@ function App() {
     setError("");
     setNotice("");
     try {
-      await api.createClass(className.trim(), Number(totalSeats), Number(admissionFee));
+      await api.createClass(`${className.trim()} - ${classShift} Shift`, Number(totalSeats), Number(admissionFee));
       setClassName("");
+      setClassShift("Morning");
       setTotalSeats("60");
       setAdmissionFee("0");
       setShowClassForm(false);
@@ -479,7 +481,12 @@ function App() {
               </div>
               {showClassForm && (
                 <form className="admin-form" onSubmit={(event) => void submitClass(event)}>
-                  <label>Class and shift<input value={className} onChange={(event) => setClassName(event.target.value)} placeholder="e.g. Class 6 - Morning Shift" maxLength={120} required /></label>
+                  <label>Class name<input value={className} onChange={(event) => setClassName(event.target.value)} placeholder="e.g. Class 6" maxLength={100} required /></label>
+                  <label>Shift<select value={classShift} onChange={(event) => setClassShift(event.target.value)} required>
+                    <option>Morning</option>
+                    <option>Day</option>
+                    <option>Evening</option>
+                  </select></label>
                   <label>Total seats<input type="number" min="1" max="10000" value={totalSeats} onChange={(event) => setTotalSeats(event.target.value)} required /></label>
                   <label>Admission fee (BDT)<input type="number" min="0" max="9999999999" step="1" value={admissionFee} onChange={(event) => setAdmissionFee(event.target.value)} required /></label>
                   <button className="apply-button" type="submit" disabled={savingClass}>{savingClass ? "Creating…" : "Save class"} →</button>
