@@ -12,7 +12,7 @@ docker compose up --build
 
 - Admission UI: <http://localhost:8081>
 - API: <http://localhost:8080>
-- OpenAPI document (development API): <http://localhost:8080/openapi/v1.json>
+- API contract: <http://localhost:8080/openapi/v1.json>
 
 The PostgreSQL data is kept in the `postgres_data` Docker volume. To stop the services, use `docker compose down`. To also clear the local database, explicitly remove the volume with `docker compose down -v`.
 
@@ -52,7 +52,27 @@ All request and response bodies use JSON. Student actions identify the student w
 
 Seat holds expire after the configured duration. The API returns `409 Conflict` if a class is full, a student already has an active application for that class, or a hold cannot transition to the requested status. Hold states are `HELD`, `CONFIRMED`, `EXPIRED`, and `CANCELLED`.
 
+The UI keeps student admission separate from school administration. Students browse classes, reserve seats, and manage their applications from the student portal. School staff use the admin portal to create classes and review capacity. The assignment does not define an authentication API, so the admin portal is a separate workflow, not an access-control boundary.
+
 ## Checks
+
+Start the local PostgreSQL service, then run the backend API integration and concurrency tests:
+
+```sh
+docker compose up -d db
+dotnet test backend/SchoolAdmission.Api.Tests/SchoolAdmission.Api.Tests.csproj
+```
+
+The tests create and remove a temporary PostgreSQL database for each test run, so use a local/test PostgreSQL instance and a user allowed to create databases. To use a different instance, set `ADMISSION_TEST_CONNECTION` before running the tests:
+
+```powershell
+$env:ADMISSION_TEST_CONNECTION = "Host=localhost;Port=5432;Database=school_admission;Username=postgres;Password=your-local-password"
+dotnet test backend/SchoolAdmission.Api.Tests/SchoolAdmission.Api.Tests.csproj
+```
+
+In Git Bash, set the same variable with `export ADMISSION_TEST_CONNECTION="Host=localhost;Port=5432;Database=school_admission;Username=postgres;Password=your-local-password"`.
+
+Build the API and frontend:
 
 ```sh
 dotnet build backend/SchoolAdmission.Api/SchoolAdmission.Api.csproj

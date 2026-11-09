@@ -3,12 +3,15 @@ using SchoolAdmission.Api.Models;
 
 namespace SchoolAdmission.Api.Contracts;
 
-public sealed record CreateClassRequest(
-    [property: Required]
-    [property: StringLength(120, MinimumLength = 1)]
-    string Name,
-    [property: Range(1, 10000)]
-    int TotalSeats);
+public sealed class CreateClassRequest
+{
+    [Required]
+    [StringLength(120, MinimumLength = 1)]
+    public string Name { get; init; } = string.Empty;
+
+    [Range(1, 10000)]
+    public int TotalSeats { get; init; }
+}
 
 public sealed record ClassResponse(
     string Id,

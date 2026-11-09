@@ -35,7 +35,12 @@ builder.Services.AddOpenApi();
 builder.Services.AddCors(options => options.AddDefaultPolicy(policy =>
     policy.WithOrigins(builder.Configuration
             .GetSection("Cors:AllowedOrigins")
-            .Get<string[]>() ?? ["http://localhost:5173", "http://localhost:8081"])
+            .Get<string[]>() ?? [
+                "http://localhost:5173",
+                "http://localhost:8081",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:8081"
+            ])
         .AllowAnyHeader()
         .AllowAnyMethod()));
 
