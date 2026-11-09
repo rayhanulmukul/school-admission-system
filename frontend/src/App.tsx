@@ -134,6 +134,15 @@ function App() {
     return () => window.clearInterval(timer);
   }, [hasActiveHold]);
 
+  const expiredHoldKey = holds
+    .filter((hold) => hold.status === "HELD" && new Date(hold.expiresAt).getTime() <= now)
+    .map((hold) => hold.holdId)
+    .join(",");
+  useEffect(() => {
+    if (!expiredHoldKey || !studentId.trim()) return;
+    void Promise.all([refreshClasses(), refreshHolds(studentId.trim())]).catch(() => undefined);
+  }, [expiredHoldKey, refreshClasses, refreshHolds, studentId]);
+
   const counts = useMemo(() => classes.reduce(
     (total, admissionClass) => ({
       totalSeats: total.totalSeats + admissionClass.totalSeats,
