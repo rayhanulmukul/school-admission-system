@@ -144,6 +144,7 @@ h1,h2,h3,p { margin-top: 0; }
 .reserve-form { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
 .reserve-form label { display: grid; gap: 6px; color: #5d6a60; font-size: 10px; font-weight: 600; }
 .reserve-form input { height: 38px; padding: 0 11px; border: 1px solid #dfe5da; border-radius: 6px; color: #24352a; font-size: 11px; }
+.reserve-form .reserve-form-heading { grid-column: 1 / -1; margin: 0; color: #20342a; font-size: 13px; font-weight: 700; }
 .reserve-form .apply-button { width: auto; white-space: nowrap; }
 .reserve-panel { display: grid; gap: 10px; }
 .hold-status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; color: #3b4a3f; font-size: 11px; }

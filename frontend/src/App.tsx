@@ -238,23 +238,23 @@ function App() {
         <nav className="sidebar-nav" aria-label="Portal navigation">
           <button
             className={activeView === "admissions" ? "side-link selected" : "side-link"}
-            title="Explore Classes"
+            title="Apply for Admission"
             onClick={() => {
               setActiveView("admissions");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
           >
-            <span className="side-icon">⌂</span> Explore Classes
+            <span className="side-icon">⌂</span> Apply for Admission
           </button>
           <button
             className={activeView === "applications" ? "side-link selected" : "side-link"}
-            title="My Applications"
+            title="Check Admission"
             onClick={() => {
               setActiveView("applications");
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
           >
-            <span className="side-icon">▤</span> My Applications
+            <span className="side-icon">▤</span> Check Admission
             {holds.some((hold) => hold.status === "HELD") && <span className="side-count">!</span>}
           </button>
         </nav>
@@ -427,6 +427,7 @@ function App() {
                       <div className="confirmed-panel"><span>✓</span><span><strong>Admission complete</strong><small>Payment received · {selectedClass.name}</small></span></div>
                     ) : (
                       <form className="reserve-form" onSubmit={(event) => { event.preventDefault(); void holdSeat(selectedClass); }}>
+                        <h4 className="reserve-form-heading">Fill up student information</h4>
                         <label>Student's full name
                           <input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="As written on the birth certificate" maxLength={100} autoComplete="name" required />
                         </label>
