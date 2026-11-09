@@ -90,6 +90,19 @@ app.UseCors();
 app.UseHttpsRedirection();
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+app.MapGet("/", () => Results.Content("""
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <title>School Admission API</title>
+    </head>
+    <body>
+      <script id="api-reference" data-url="/openapi/v1.json"></script>
+      <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+    </body>
+    </html>
+    """, "text/html"));
 
 app.Run();
 

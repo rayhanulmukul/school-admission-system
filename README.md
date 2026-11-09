@@ -12,6 +12,7 @@ docker compose up --build
 
 - Admission UI: <http://localhost:8081>
 - API: <http://localhost:8080>
+- API docs (browsable): <http://localhost:8080/>
 - API contract: <http://localhost:8080/openapi/v1.json>
 
 The PostgreSQL data is kept in the `postgres_data` Docker volume. To stop the services, use `docker compose down`. To also clear the local database, explicitly remove the volume with `docker compose down -v`.
