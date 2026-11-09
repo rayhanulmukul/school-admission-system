@@ -143,6 +143,14 @@ function App() {
     void Promise.all([refreshClasses(), refreshHolds(studentId.trim())]).catch(() => undefined);
   }, [expiredHoldKey, refreshClasses, refreshHolds, studentId]);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      void refreshClasses().catch(() => undefined);
+      if (studentId.trim()) void refreshHolds(studentId.trim()).catch(() => undefined);
+    }, 10000);
+    return () => window.clearInterval(timer);
+  }, [refreshClasses, refreshHolds, studentId]);
+
   const counts = useMemo(() => classes.reduce(
     (total, admissionClass) => ({
       totalSeats: total.totalSeats + admissionClass.totalSeats,
