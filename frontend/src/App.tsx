@@ -47,7 +47,6 @@ function App() {
     savedProfile.studentId ?? window.localStorage.getItem("admission-student-id") ?? "",
   );
   const [activeView, setActiveView] = useState<View>("admissions");
-  const [profileOpen, setProfileOpen] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [className, setClassName] = useState("");
@@ -127,6 +126,9 @@ function App() {
 
   const selectedClass = classes.find((admissionClass) => admissionClass.id === selectedClassId)
     ?? (filteredClasses.length === 1 ? filteredClasses[0] : null);
+  const selectedHold = selectedClass
+    ? holds.find((hold) => hold.classId === selectedClass.id && (hold.status === "HELD" || hold.status === "CONFIRMED"))
+    : undefined;
 
   async function submitClass(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -149,10 +151,8 @@ function App() {
   }
 
   async function holdSeat(admissionClass: AdmissionClass) {
-    if (!studentId.trim()) {
-      setError("Enter your birth registration number before reserving a seat.");
-      setProfileOpen(true);
-      window.setTimeout(() => document.getElementById("student-id")?.focus(), 0);
+    if (!studentName.trim() || !studentId.trim()) {
+      setError("Enter your name and birth registration number to apply.");
       return;
     }
     setBusyHoldId(admissionClass.id);
@@ -214,54 +214,7 @@ function App() {
           <img src="/school-crest.svg" alt="" />
           <span>BANANI BIDYANIKETAN SCHOOL &amp; COLLEGE</span>
         </a>
-        <div className="header-profile">
-          <button
-            className="profile-trigger"
-            type="button"
-            aria-expanded={profileOpen}
-            aria-controls="profile-menu"
-            onClick={() => setProfileOpen(!profileOpen)}
-          >
-            <span className="profile-avatar">{initials(studentName)}</span>
-            <span className="profile-trigger-copy">
-              <strong>{studentName.trim() || "Student profile"}</strong>
-              <span>{studentId.trim() || "Add registration number"}</span>
-            </span>
-            <span className="profile-chevron" aria-hidden="true">⌄</span>
-          </button>
-          {profileOpen && (
-            <section className="profile-menu" id="profile-menu" aria-label="Student profile">
-              <div className="profile-menu-heading">
-                <strong>Student profile</strong>
-                <button type="button" onClick={() => setProfileOpen(false)} aria-label="Close profile">×</button>
-              </div>
-              <label className="profile-name-field" htmlFor="student-name">
-                <span className="field-caption">STUDENT NAME</span>
-                <input
-                  id="student-name"
-                  value={studentName}
-                  onChange={(event) => setStudentName(event.target.value)}
-                  placeholder="Your full name"
-                  maxLength={100}
-                  autoComplete="name"
-                />
-              </label>
-              <label className="student-id-field" htmlFor="student-id">
-                <span className="field-caption">BIRTH REGISTRATION NUMBER</span>
-                <input
-                  id="student-id"
-                  value={studentId}
-                  onChange={(event) => setStudentId(event.target.value)}
-                  placeholder="Enter your 17-digit number"
-                  maxLength={80}
-                  inputMode="numeric"
-                  autoComplete="off"
-                />
-              </label>
-              <button className="profile-save-button" type="button" onClick={() => setProfileOpen(false)}>Done</button>
-            </section>
-          )}
-        </div>
+        <p className="topbar-year">ADMISSION 2026-2027</p>
       </header>
 
       <aside className="sidebar">
@@ -297,12 +250,6 @@ function App() {
           </button>
         </nav>
 
-        <section className="sidebar-year" aria-label="Academic year">
-          <span className="year-icon">▦</span>
-          <span>Academic Year<strong>2027</strong></span>
-          <span className="year-rule" />
-          <span>School Admissions</span>
-        </section>
       </aside>
 
       <main className="main-content">
@@ -384,6 +331,39 @@ function App() {
                       <span><small>On hold</small><strong className="amber-text">{selectedClass.heldSeats}</strong></span>
                       <span><small>Admission fee</small><strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong></span>
                     </div>
+                    {selectedHold?.status === "HELD" ? (
+                      <div className="reserve-panel">
+                        <div className="hold-status">
+                          <span>Seat reserved for <strong>{studentName.trim()}</strong></span>
+                          <span>Time left: <strong className="hold-timer">{formatRemaining(selectedHold.expiresAt, now)}</strong></span>
+                        </div>
+                        <div className="hold-actions">
+                          <button className="apply-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void payDemo(selectedHold)}>
+                            {busyHoldId === selectedHold.holdId
+                              ? "Processing…"
+                              : selectedClass.admissionFee > 0
+                                ? `Pay ${formatCurrency(selectedClass.admissionFee)} & complete`
+                                : "Complete admission"} <span>→</span>
+                          </button>
+                          <button className="cancel-reservation" disabled={busyHoldId === selectedHold.holdId} onClick={() => void cancelHold(selectedHold)}>Cancel</button>
+                        </div>
+                        <p className="demo-disclaimer">Demo payment only. No real money is charged.</p>
+                      </div>
+                    ) : selectedHold?.status === "CONFIRMED" ? (
+                      <div className="confirmed-panel"><span>✓</span><span><strong>Admission complete</strong><small>Payment received · {selectedClass.name}</small></span></div>
+                    ) : (
+                      <form className="reserve-form" onSubmit={(event) => { event.preventDefault(); void holdSeat(selectedClass); }}>
+                        <label>Student name
+                          <input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="Full name" maxLength={100} autoComplete="name" required />
+                        </label>
+                        <label>Birth registration number
+                          <input value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="17-digit number" maxLength={80} inputMode="numeric" autoComplete="off" required />
+                        </label>
+                        <button className="apply-button" type="submit" disabled={selectedClass.availableSeats <= 0 || busyHoldId === selectedClass.id}>
+                          {busyHoldId === selectedClass.id ? "Submitting…" : "Submit & apply"} <span>→</span>
+                        </button>
+                      </form>
+                    )}
                   </section>
                 )}
 
@@ -437,31 +417,6 @@ function App() {
                             <span>Admission fee</span>
                             <strong>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</strong>
                           </div>
-                          {studentHold?.status === "HELD" ? (
-                            <div className="inline-checkout">
-                              <div className="checkout-title"><span className="checkout-lock">▣</span><span><strong>Seat reserved for you</strong><span>Time left to complete payment: <strong className="hold-timer">{formatRemaining(studentHold.expiresAt, now)}</strong></span></span></div>
-                              <div className="checkout-total"><span>{admissionClass.admissionFee > 0 ? "Demo admission fee" : "Admission fee"}</span><strong>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "Free"}</strong></div>
-                              <p className="demo-disclaimer">Demo checkout only. No real payment is collected.</p>
-                              <button className="apply-button" disabled={busyHoldId === studentHold.holdId} onClick={() => void payDemo(studentHold)}>
-                                {busyHoldId === studentHold.holdId
-                                  ? "Confirming…"
-                                  : admissionClass.admissionFee > 0
-                                    ? `Pay ${formatCurrency(admissionClass.admissionFee)} & confirm`
-                                    : "Confirm free admission"} <span>→</span>
-                              </button>
-                              <button className="cancel-reservation" disabled={busyHoldId === studentHold.holdId} onClick={() => void cancelHold(studentHold)}>Cancel reservation</button>
-                            </div>
-                          ) : studentHold?.status === "CONFIRMED" ? (
-                            <div className="confirmed-panel"><span>✓</span><span><strong>Admission confirmed</strong><small>Demo checkout complete · No payment was collected</small></span></div>
-                          ) : (
-                            <button
-                              className="apply-button"
-                              disabled={admissionClass.availableSeats <= 0 || busyHoldId === admissionClass.id}
-                              onClick={() => void holdSeat(admissionClass)}
-                            >
-                              {busyHoldId === admissionClass.id ? "Reserving…" : "Apply for this class"} <span>↗</span>
-                            </button>
-                          )}
                         </article>
                       );
                     })}
@@ -480,7 +435,7 @@ function App() {
               <section className="applications-section" id="my-applications">
                 <div className="section-title-row"><div><p className="eyebrow">YOUR ADMISSION JOURNEY</p><h2>My applications</h2></div><button className="refresh-button" onClick={() => void refresh()}>↻ Refresh</button></div>
                 {!studentId.trim() ? (
-                  <p className="applications-empty">Add your registration number from the profile menu to see your applications.</p>
+                  <p className="applications-empty">Enter your name and registration number under a selected class to see your applications.</p>
                 ) : holds.length === 0 ? (
                   <p className="applications-empty">Your class reservations will appear here.</p>
                 ) : (
@@ -527,7 +482,7 @@ function App() {
             </section>
           )}
 
-          <footer className="page-footer"><img src="/school-crest.svg" alt="" /> Banani Bidyaniketan School &amp; College <span>Academic Year 2027</span></footer>
+          <footer className="page-footer"><img src="/school-crest.svg" alt="" /> Banani Bidyaniketan School &amp; College <span>Admission 2026-2027</span></footer>
         </div>
       </main>
     </div>
