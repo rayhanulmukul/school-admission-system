@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api, AdmissionClass, AdmittedStudent, StudentHold } from "./api";
 
-type View = "admissions" | "applications" | "admin" | "admitted";
+type View = "admissions" | "apply" | "applications" | "admin" | "admitted";
 
 const legacyPersonalKeys = ["banani-admission-profile", "admission-student-id"];
 
@@ -158,12 +158,6 @@ function App() {
     ? holds.find((hold) => hold.classId === selectedClass.id && (hold.status === "HELD" || hold.status === "CONFIRMED"))
     : undefined;
 
-  useEffect(() => {
-    if (selectedClassId) {
-      document.getElementById("selected-class-panel")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  }, [selectedClassId]);
-
   async function submitClass(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSavingClass(true);
@@ -303,7 +297,7 @@ function App() {
         <p className="sidebar-label">STUDENT MENU</p>
         <nav className="sidebar-nav" aria-label="Portal navigation">
           <button
-            className={activeView === "admissions" ? "side-link selected" : "side-link"}
+            className={activeView === "admissions" || activeView === "apply" ? "side-link selected" : "side-link"}
             title="Apply for Admission"
             onClick={() => {
               setActiveView("admissions");
@@ -430,9 +424,8 @@ function App() {
                             onClick={(event) => {
                               event.stopPropagation();
                               setSelectedClassId(admissionClass.id);
-                              requestAnimationFrame(() =>
-                                document.getElementById("apply-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
-                              );
+                              setActiveView("apply");
+                              window.scrollTo({ top: 0 });
                             }}
                           >
                             Apply for this class <span aria-hidden="true">→</span>
@@ -445,7 +438,12 @@ function App() {
 
               </section>
 
-              {selectedClass && (
+            </>
+          ) : activeView === "apply" && selectedClass ? (
+            <section className="apply-page">
+              <div className="apply-page-top">
+                <button className="back-pill" onClick={() => setActiveView("admissions")}>← Back to classes</button>
+              </div>
               <section className="applications-section" id="apply-section">
                 {selectedClass && (
                   <section id="selected-class-panel" className="selected-class-panel" aria-label="Selected class seat details">
@@ -509,8 +507,7 @@ function App() {
                 )}
 
               </section>
-              )}
-            </>
+            </section>
           ) : activeView === "applications" ? (
             <section className="status-page" id="my-applications">
               <h2>My applications</h2>
