@@ -52,6 +52,8 @@ await using (var scope = app.Services.CreateAsyncScope())
     await db.Database.EnsureCreatedAsync();
     await db.Database.ExecuteSqlRawAsync(
         """ALTER TABLE "Classes" ADD COLUMN IF NOT EXISTS "AdmissionFee" numeric(12,2) NOT NULL DEFAULT 0""");
+    await db.Database.ExecuteSqlRawAsync(
+        """ALTER TABLE "Holds" ADD COLUMN IF NOT EXISTS "StudentName" varchar(120) NOT NULL DEFAULT ''""");
 }
 
 app.MapOpenApi();

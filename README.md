@@ -43,7 +43,8 @@ All request and response bodies use JSON. Student actions identify the student w
 | `POST` | `/classes` | Create a class (`name`, `totalSeats`) |
 | `GET` | `/classes` | List classes with held, confirmed, and available seat counts |
 | `GET` | `/classes/{classId}` | Get a class and its current seat counts |
-| `POST` | `/classes/{classId}/holds` | Hold an available seat for the requesting student |
+| `POST` | `/classes/{classId}/holds` | Hold an available seat for the requesting student (optional JSON body `{ "studentName": "..." }`) |
+| `GET` | `/classes/{classId}/admissions` | List confirmed students (name and registration number) for a class |
 | `GET` | `/holds/{holdId}` | Get a hold and its current status |
 | `POST` | `/holds/{holdId}/confirm` | Confirm a hold belonging to the requesting student |
 | `DELETE` | `/holds/{holdId}` | Cancel a hold belonging to the requesting student |
@@ -52,8 +53,7 @@ All request and response bodies use JSON. Student actions identify the student w
 
 Seat holds expire after the configured duration. The API returns `409 Conflict` if a class is full, a registration number already has an active application in any class, or a hold cannot transition to the requested status. The UI’s “Check Admission” page looks up holds with `GET /me/holds` using a birth registration number. The class-selection page does not store or show any student’s data. Hold states are `HELD`, `CONFIRMED`, `EXPIRED`, and `CANCELLED`.
 
-The UI follows the supplied school-portal reference. The student page includes a locally saved profile, class search and shift filters, live seat summaries, inline reservations, applications, and an in-page demo checkout. The admin portal separately creates classes with total seats and an admission fee.
-
+The UI follows the supplied school-portal reference. The student page includes a locally saved profile, class search and shift filters, live seat summaries, inline reservations, applications, and an in-page demo checkout. The admin portal separately creates classes with total seats and an admission fee, and lists each class’s admitted students (name and birth registration number) under “View admitted”.
 **Payments are a UI/API demo only:** completing checkout confirms the seat but does not charge money or contact a payment provider. The assignment does not provide payment integration details or an authentication API, so the admin portal is a separate workflow, not an access-control boundary.
 
 ## Checks

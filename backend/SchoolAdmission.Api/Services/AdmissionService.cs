@@ -91,6 +91,7 @@ public sealed class AdmissionService(
     public async Task<HoldResponse?> CreateHoldAsync(
         string classId,
         string studentId,
+        string studentName,
         CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
@@ -132,6 +133,7 @@ public sealed class AdmissionService(
             Id = $"h_{Guid.NewGuid():N}",
             ClassId = classId,
             StudentId = studentId,
+            StudentName = studentName,
             Status = HoldStatus.Held,
             CreatedAt = now,
             ExpiresAt = now.Add(holdDuration)
@@ -280,6 +282,16 @@ public sealed class AdmissionService(
                 hold.ExpiresAt))
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<AdmittedStudentResponse>> GetAdmittedStudentsAsync(
+        string classId,
+        CancellationToken cancellationToken) =>
+        await db.Holds
+            .AsNoTracking()
+            .Where(hold => hold.ClassId == classId && hold.Status == HoldStatus.Confirmed)
+            .OrderBy(hold => hold.CreatedAt)
+            .Select(hold => new AdmittedStudentResponse(hold.Id, hold.StudentId, hold.StudentName))
+            .ToListAsync(cancellationToken);
 
     private async Task LockClassAsync(string classId, CancellationToken cancellationToken)
     {

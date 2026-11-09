@@ -29,6 +29,7 @@ public sealed class AdmissionDbContext(
             entity.HasKey(hold => hold.Id);
             entity.Property(hold => hold.Id).HasMaxLength(40);
             entity.Property(hold => hold.StudentId).HasMaxLength(80).IsRequired();
+            entity.Property(hold => hold.StudentName).HasMaxLength(120).IsRequired();
             entity.Property(hold => hold.Status).HasConversion<string>().HasMaxLength(16);
             entity.HasIndex(hold => new { hold.ClassId, hold.Status, hold.ExpiresAt });
             entity.HasIndex(hold => new { hold.StudentId, hold.CreatedAt });

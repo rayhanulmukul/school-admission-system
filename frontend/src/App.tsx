@@ -1,5 +1,5 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { api, AdmissionClass, StudentHold } from "./api";
+import { FormEvent, Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { api, AdmissionClass, AdmittedStudent, StudentHold } from "./api";
 
 type View = "admissions" | "applications" | "admin";
 
@@ -44,6 +44,9 @@ function App() {
   const [search, setSearch] = useState("");
   const [shiftFilter, setShiftFilter] = useState("All Shifts");
   const [showClassForm, setShowClassForm] = useState(false);
+  const [expandedClassId, setExpandedClassId] = useState<string | null>(null);
+  const [admittedByClass, setAdmittedByClass] = useState<Record<string, AdmittedStudent[]>>({});
+  const [loadingAdmittedId, setLoadingAdmittedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingClass, setSavingClass] = useState(false);
   const [busyHoldId, setBusyHoldId] = useState<string | null>(null);
@@ -176,6 +179,24 @@ function App() {
     }
   }
 
+  async function toggleAdmitted(classId: string) {
+    if (expandedClassId === classId) {
+      setExpandedClassId(null);
+      return;
+    }
+    setExpandedClassId(classId);
+    setLoadingAdmittedId(classId);
+    setError("");
+    try {
+      const students = await api.getClassAdmissions(classId);
+      setAdmittedByClass((current) => ({ ...current, [classId]: students }));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not load admitted students.");
+    } finally {
+      setLoadingAdmittedId(null);
+    }
+  }
+
   async function holdSeat(admissionClass: AdmissionClass) {
     if (!studentName.trim() || !studentId.trim()) {
       setError("Enter your name and birth registration number to apply.");
@@ -185,7 +206,7 @@ function App() {
     setError("");
     setNotice("");
     try {
-      await api.holdSeat(admissionClass.id, studentId.trim());
+      await api.holdSeat(admissionClass.id, studentId.trim(), studentName.trim());
       await Promise.all([refreshClasses(), refreshHolds(studentId.trim())]);
       setNotice(`Your seat in ${admissionClass.name} is reserved. Complete checkout before the hold expires.`);
     } catch (requestError) {
@@ -495,13 +516,38 @@ function App() {
               <div className="admin-class-list">
                 <div className="admin-list-heading"><span>Class</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span></div>
                 {loading ? <p className="applications-empty">Loading classes…</p> : classes.length === 0 ? <p className="applications-empty">No classes have been created yet.</p> : classes.map((admissionClass) => (
-                  <div className="admin-list-row" key={admissionClass.id}>
-                    <strong>{admissionClass.name}</strong>
-                    <span>{admissionClass.totalSeats}</span>
-                    <span>{admissionClass.confirmedSeats}</span>
-                    <span>{admissionClass.heldSeats}</span>
-                    <span>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</span>
-                  </div>
+                  <Fragment key={admissionClass.id}>
+                    <div className="admin-list-row">
+                      <div className="admin-class-name">
+                        <strong>{admissionClass.name}</strong>
+                        <button className="text-button admin-view-button" onClick={() => void toggleAdmitted(admissionClass.id)}>
+                          {expandedClassId === admissionClass.id ? "Hide admitted" : "View admitted"}
+                        </button>
+                      </div>
+                      <span>{admissionClass.totalSeats}</span>
+                      <span>{admissionClass.confirmedSeats}</span>
+                      <span>{admissionClass.heldSeats}</span>
+                      <span>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</span>
+                    </div>
+                    {expandedClassId === admissionClass.id && (
+                      <div className="admin-admitted">
+                        {loadingAdmittedId === admissionClass.id ? <p className="applications-empty">Loading admitted students…</p> : (admittedByClass[admissionClass.id] ?? []).length === 0 ? <p className="applications-empty">No student has been admitted to this class yet.</p> : (
+                          <table className="admin-admitted-table">
+                            <thead><tr><th>#</th><th>Student name</th><th>Birth registration number</th></tr></thead>
+                            <tbody>
+                              {(admittedByClass[admissionClass.id] ?? []).map((student, index) => (
+                                <tr key={student.holdId}>
+                                  <td>{index + 1}</td>
+                                  <td>{student.studentName || "Not provided"}</td>
+                                  <td>{student.studentId}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    )}
+                  </Fragment>
                 ))}
               </div>
               <p className="admin-demo-note">Demo portal: the assignment does not include admin sign-in or role authorization.</p>

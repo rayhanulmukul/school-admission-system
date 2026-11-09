@@ -45,6 +45,7 @@ public sealed class ClassesController(AdmissionService admissionService) : Contr
     public async Task<ActionResult<HoldResponse>> CreateHold(
         string classId,
         [FromHeader(Name = "X-Student-Id")] string? studentId,
+        [FromBody] CreateHoldRequest? request,
         CancellationToken cancellationToken)
     {
         var validatedStudentId = ValidateStudentId(studentId);
@@ -58,11 +59,26 @@ public sealed class ClassesController(AdmissionService admissionService) : Contr
             });
         }
 
+        var studentName = request?.StudentName?.Trim() ?? string.Empty;
         var response = await admissionService.CreateHoldAsync(
-            classId, validatedStudentId, cancellationToken);
+            classId, validatedStudentId, studentName, cancellationToken);
         return response is null
             ? NotFound()
             : StatusCode(StatusCodes.Status201Created, response);
+    }
+
+    [HttpGet("{classId}/admissions")]
+    public async Task<ActionResult<IReadOnlyList<AdmittedStudentResponse>>> ListAdmissions(
+        string classId,
+        CancellationToken cancellationToken)
+    {
+        var admissionClass = await admissionService.GetClassAsync(classId, cancellationToken);
+        if (admissionClass is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(await admissionService.GetAdmittedStudentsAsync(classId, cancellationToken));
     }
 
     private static string? ValidateStudentId(string? studentId)

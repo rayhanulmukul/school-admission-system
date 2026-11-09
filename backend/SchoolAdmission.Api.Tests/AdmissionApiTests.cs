@@ -93,6 +93,38 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
     }
 
     [Fact]
+    public async Task Admissions_ListsOnlyConfirmedStudentsWithNames()
+    {
+        var admissionClass = await CreateClassAsync("Class 11 - Morning Shift", 3);
+        using var heldRequest = new HttpRequestMessage(
+            HttpMethod.Post, $"/classes/{admissionClass.Id}/holds")
+        {
+            Content = JsonContent.Create(new { studentName = "Rahim Uddin" })
+        };
+        heldRequest.Headers.Add("X-Student-Id", "reg-admit-1");
+        var holdResponse = await fixture.Client.SendAsync(heldRequest);
+        var hold = await holdResponse.Content.ReadFromJsonAsync<HoldResponse>(JsonOptions);
+        Assert.NotNull(hold);
+
+        var pendingHold = await CreateHoldAsync(admissionClass.Id, "reg-pending-1");
+        Assert.Equal(HttpStatusCode.Created, pendingHold.StatusCode);
+
+        using var confirmRequest = new HttpRequestMessage(
+            HttpMethod.Post, $"/holds/{hold.HoldId}/confirm");
+        confirmRequest.Headers.Add("X-Student-Id", "reg-admit-1");
+        Assert.Equal(HttpStatusCode.OK, (await fixture.Client.SendAsync(confirmRequest)).StatusCode);
+
+        var admitted = await fixture.Client.GetFromJsonAsync<AdmittedStudentResponse[]>(
+            $"/classes/{admissionClass.Id}/admissions", JsonOptions);
+        var student = Assert.Single(admitted!);
+        Assert.Equal("reg-admit-1", student.StudentId);
+        Assert.Equal("Rahim Uddin", student.StudentName);
+
+        var missingClass = await fixture.Client.GetAsync("/classes/does-not-exist/admissions");
+        Assert.Equal(HttpStatusCode.NotFound, missingClass.StatusCode);
+    }
+
+    [Fact]
     public async Task Hold_RejectsFullClassDuplicateStudentAndMissingStudentId()
     {
         var admissionClass = await CreateClassAsync("Class 8 - Morning Shift", 1);
@@ -246,6 +278,11 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
         int HeldSeats,
         int ConfirmedSeats,
         int AvailableSeats);
+
+    private sealed record AdmittedStudentResponse(
+        string HoldId,
+        string StudentId,
+        string StudentName);
 
     private sealed record HoldResponse(
         string HoldId,

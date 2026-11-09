@@ -25,6 +25,17 @@ public sealed record ClassResponse(
     int ConfirmedSeats,
     int AvailableSeats);
 
+public sealed class CreateHoldRequest
+{
+    [StringLength(120)]
+    public string? StudentName { get; init; }
+}
+
+public sealed record AdmittedStudentResponse(
+    string HoldId,
+    string StudentId,
+    string StudentName);
+
 public sealed record HoldResponse(
     string HoldId,
     string ClassId,

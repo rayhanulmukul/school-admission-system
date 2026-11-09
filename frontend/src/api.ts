@@ -17,6 +17,12 @@ export type StudentHold = {
   expiresAt: string;
 };
 
+export type AdmittedStudent = {
+  holdId: string;
+  studentId: string;
+  studentName: string;
+};
+
 export type SeatHold = {
   holdId: string;
   classId: string;
@@ -61,11 +67,14 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ name, totalSeats, admissionFee }),
     }),
+  getClassAdmissions: (classId: string) =>
+    request<AdmittedStudent[]>("/classes/" + encodeURIComponent(classId) + "/admissions"),
   getHolds: (studentId: string) =>
     request<StudentHold[]>("/me/holds", {}, studentId),
-  holdSeat: (classId: string, studentId: string) =>
+  holdSeat: (classId: string, studentId: string, studentName: string) =>
     request<SeatHold>("/classes/" + encodeURIComponent(classId) + "/holds", {
       method: "POST",
+      body: JSON.stringify({ studentName }),
     }, studentId),
   confirmHold: (holdId: string, studentId: string) =>
     request("/holds/" + encodeURIComponent(holdId) + "/confirm", {

@@ -188,6 +188,12 @@ h1,h2,h3,p { margin-top: 0; }
 .admin-list-heading { color: #69796c; background: #f3f6ef; font-size: 8px; font-weight: 700; }
 .admin-list-row { min-height: 42px; border-top: 1px solid #edf0ea; color: #667166; font-size: 9px; }
 .admin-list-row strong { color: #334939; font-size: 9px; }
+.admin-class-name { display: grid; justify-items: start; gap: 2px; }
+.admin-view-button { padding: 0; font-size: 8px; }
+.admin-admitted { padding: 10px 12px 12px; border-top: 1px solid #edf0ea; background: #fbfcf9; }
+.admin-admitted-table { width: 100%; border-collapse: collapse; color: #415344; font-size: 9px; }
+.admin-admitted-table th { padding: 6px 8px; color: #69796c; font-size: 8px; font-weight: 700; text-align: left; border-bottom: 1px solid #e7eae3; }
+.admin-admitted-table td { padding: 7px 8px; border-bottom: 1px solid #f0f2ed; }
 .admin-demo-note { margin: 12px 0 0; color: #8c8167; font-size: 8px; }
 .page-footer { display: flex; align-items: center; gap: 7px; padding: 18px 2px 0; color: #758075; font-size: 8px; }
 .page-footer img { width: 19px; height: 19px; }.page-footer > span { margin-left: auto; }

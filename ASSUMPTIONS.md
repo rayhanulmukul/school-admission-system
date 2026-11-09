@@ -6,6 +6,7 @@
 - Admission status is checked by birth registration number on the “Check Admission” page. The API returns the holds for any registration number, so this is a demo-level privacy trade-off.
 - A seat is occupied while its hold is active or confirmed. Holds expire after `HOLD_DURATION_SECONDS` (600 seconds by default); expiration is materialized when the hold is read or a relevant student/class is accessed.
 - The admin sets an admission fee for each class. The frontend demo checkout uses that fee to show the amount and confirm a seat, but no real payment is collected because no payment provider is configured.
+- The student’s name is saved with the seat hold so the admin portal can list admitted students. The admitted-student list is public like the other endpoints, because the assignment defines no authentication. Holds created before this change have no name and show “Not provided”.
 - The frontend separates the student admission portal from the school-admin class-management portal. The assignment API contract does not define authentication or admin roles, so admin authorization is not represented by the UI separation.
 - `EnsureCreated` initializes a new PostgreSQL database at startup. Startup also idempotently adds the admission-fee column to databases created by earlier project versions. Schema evolution for a deployed system should use EF Core migrations.
 - The local Compose database credentials are for development only and must be replaced with secrets before deployment.
