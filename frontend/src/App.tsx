@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, AdmissionClass, AdmittedStudent, StudentHold } from "./api";
 
 type View = "admissions" | "apply" | "applications" | "admin" | "admitted";
@@ -39,6 +39,7 @@ function App() {
   const [studentName, setStudentName] = useState("");
   const [studentId, setStudentId] = useState("");
   const [activeView, setActiveView] = useState<View>("admissions");
+  const applyReturnScrollY = useRef(0);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [className, setClassName] = useState("");
@@ -423,6 +424,7 @@ function App() {
                             disabled={admissionClass.availableSeats <= 0}
                             onClick={(event) => {
                               event.stopPropagation();
+                              applyReturnScrollY.current = window.scrollY;
                               setSelectedClassId(admissionClass.id);
                               setActiveView("apply");
                               window.scrollTo({ top: 0 });
@@ -441,16 +443,22 @@ function App() {
             </>
           ) : activeView === "apply" && selectedClass ? (
             <section className="apply-page">
-              <div className="apply-page-top">
-                <button className="back-pill" onClick={() => setActiveView("admissions")}>← Back to classes</button>
+              <div className="apply-page-header">
+                <div>
+                  <p className="eyebrow">ADMISSION 2026-2027</p>
+                  <h2>Apply for {selectedClass.name}</h2>
+                </div>
+                <button className="back-button" onClick={() => {
+                  setActiveView("admissions");
+                  window.scrollTo({ top: applyReturnScrollY.current });
+                }}>← Back to classes</button>
               </div>
               <section className="applications-section" id="apply-section">
                 {selectedClass && (
                   <section id="selected-class-panel" className="selected-class-panel" aria-label="Selected class seat details">
                     <div className="selected-class-title">
                       <div>
-                        <p className="eyebrow">ADMISSION 2026-2027</p>
-                        <h3>{selectedClass.name}</h3>
+                        <h3>Class information</h3>
                       </div>
                       <span className={selectedClass.availableSeats > 0 ? "availability-tag" : "availability-tag full"}>
                         {selectedClass.availableSeats > 0 ? "Seats Available" : "Class Full"}
@@ -498,6 +506,10 @@ function App() {
                         <label>Birth registration number
                           <input value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="17-digit number from the birth certificate" maxLength={80} inputMode="numeric" autoComplete="off" required />
                         </label>
+                        <div className="apply-info-row">
+                          <span><small>Reservation time</small><strong>10 minutes</strong></span>
+                          <span><small>Payment</small><strong>{selectedClass.admissionFee > 0 ? `${formatCurrency(selectedClass.admissionFee)} after reserving (demo)` : "No fee"}</strong></span>
+                        </div>
                         <button className="apply-button" type="submit" disabled={selectedClass.availableSeats <= 0 || busyHoldId === selectedClass.id}>
                           {busyHoldId === selectedClass.id ? "Submitting…" : "Submit & apply"} <span>→</span>
                         </button>
