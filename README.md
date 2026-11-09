@@ -77,6 +77,17 @@ dotnet test backend/SchoolAdmission.Api.Tests/SchoolAdmission.Api.Tests.csproj
 
 In Git Bash, set the same variable with `export ADMISSION_TEST_CONNECTION="Host=localhost;Port=5432;Database=school_admission;Username=postgres;Password=your-local-password"`.
 
+Run the browser tests against the running Docker stack (start it with `docker compose up --build` first):
+
+```sh
+cd frontend
+npm ci
+npx playwright install chromium
+npm run test:e2e
+```
+
+The tests use `http://localhost:8081` for the UI and `http://localhost:8080` for the API. Override them with `E2E_BASE_URL` and `E2E_API_URL`. They create their own test classes, so they can run against a database that already has data.
+
 Build the API and frontend:
 
 ```sh
