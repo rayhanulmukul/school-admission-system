@@ -17,6 +17,11 @@ function initials(name: string) {
   return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "S";
 }
 
+function formatRemaining(expiresAt: string, now: number) {
+  const seconds = Math.max(0, Math.floor((new Date(expiresAt).getTime() - now) / 1000));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 function shiftFor(className: string) {
   if (/morning/i.test(className)) return "Morning Shift";
   if (/\bday\b/i.test(className)) return "Day Shift";
@@ -43,6 +48,8 @@ function App() {
   );
   const [activeView, setActiveView] = useState<View>("admissions");
   const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [className, setClassName] = useState("");
   const [totalSeats, setTotalSeats] = useState("60");
   const [admissionFee, setAdmissionFee] = useState("0");
@@ -78,6 +85,13 @@ function App() {
     void refresh();
   }, [refresh]);
 
+  const hasActiveHold = holds.some((hold) => hold.status === "HELD");
+  useEffect(() => {
+    if (!hasActiveHold) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [hasActiveHold]);
+
   useEffect(() => {
     const profile = { name: studentName, studentId: studentId.trim() };
     window.localStorage.setItem(profileStorageKey, JSON.stringify(profile));
@@ -110,6 +124,9 @@ function App() {
       return matchesName && matchesShift;
     });
   }, [classes, search, shiftFilter]);
+
+  const selectedClass = classes.find((admissionClass) => admissionClass.id === selectedClassId)
+    ?? (filteredClasses.length === 1 ? filteredClasses[0] : null);
 
   async function submitClass(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -349,6 +366,27 @@ function App() {
                   </div>
                 </div>
 
+                {selectedClass && (
+                  <section className="selected-class-panel" aria-label="Selected class seat details">
+                    <div className="selected-class-title">
+                      <div>
+                        <p className="eyebrow">SELECTED CLASS</p>
+                        <h3>{selectedClass.name}</h3>
+                      </div>
+                      <span className={selectedClass.availableSeats > 0 ? "availability-tag" : "availability-tag full"}>
+                        {selectedClass.availableSeats > 0 ? "Seats Available" : "Class Full"}
+                      </span>
+                    </div>
+                    <div className="selected-class-stats">
+                      <span><small>Total seats</small><strong>{selectedClass.totalSeats}</strong></span>
+                      <span><small>Available seats</small><strong className="green-text">{selectedClass.availableSeats}</strong></span>
+                      <span><small>Confirmed</small><strong>{selectedClass.confirmedSeats}</strong></span>
+                      <span><small>On hold</small><strong className="amber-text">{selectedClass.heldSeats}</strong></span>
+                      <span><small>Admission fee</small><strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong></span>
+                    </div>
+                  </section>
+                )}
+
                 {loading ? (
                   <div className="empty-class-state">Loading available classes…</div>
                 ) : filteredClasses.length === 0 ? (
@@ -367,7 +405,12 @@ function App() {
                         (hold.status === "HELD" || hold.status === "CONFIRMED"));
 
                       return (
-                        <article id={`class-${admissionClass.id}`} className={`class-card${studentHold ? " has-application" : ""}`} key={admissionClass.id}>
+                        <article
+                          id={`class-${admissionClass.id}`}
+                          className={`class-card${studentHold ? " has-application" : ""}${selectedClass?.id === admissionClass.id ? " is-selected" : ""}`}
+                          key={admissionClass.id}
+                          onClick={() => setSelectedClassId(admissionClass.id)}
+                        >
                           <div className="class-card-heading">
                             <span className={`class-icon class-icon-${index % 5}`} aria-hidden="true">
                               <svg viewBox="0 0 24 24" fill="none">
@@ -396,7 +439,7 @@ function App() {
                           </div>
                           {studentHold?.status === "HELD" ? (
                             <div className="inline-checkout">
-                              <div className="checkout-title"><span className="checkout-lock">▣</span><span><strong>Seat reserved for you</strong><span>Hold expires {new Date(studentHold.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span></div>
+                              <div className="checkout-title"><span className="checkout-lock">▣</span><span><strong>Seat reserved for you</strong><span>Time left to complete payment: <strong className="hold-timer">{formatRemaining(studentHold.expiresAt, now)}</strong></span></span></div>
                               <div className="checkout-total"><span>{admissionClass.admissionFee > 0 ? "Demo admission fee" : "Admission fee"}</span><strong>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "Free"}</strong></div>
                               <p className="demo-disclaimer">Demo checkout only. No real payment is collected.</p>
                               <button className="apply-button" disabled={busyHoldId === studentHold.holdId} onClick={() => void payDemo(studentHold)}>

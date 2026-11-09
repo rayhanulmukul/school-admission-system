@@ -149,6 +149,17 @@ h1,h2,h3,p { margin-top: 0; }
 .confirmed-panel > span:first-child { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #3a9858; }
 .confirmed-panel > span:last-child { display: grid; gap: 2px; }.confirmed-panel strong { font-size: 9px; }.confirmed-panel small { color: #668070; font-size: 7px; }
 .empty-class-state { padding: 46px 14px; border: 1px solid #e6e8e1; border-radius: 8px; color: #737d74; background: #fff; text-align: center; font-size: 11px; }
+.class-card { cursor: pointer; }
+.class-card.is-selected { border-color: var(--green); box-shadow: 0 0 0 2px #15723e26; }
+.selected-class-panel { display: grid; gap: 12px; margin-bottom: 12px; padding: 14px 16px; border: 1px solid #cfe0c9; border-radius: 9px; background: #fff; }
+.selected-class-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.selected-class-title h3 { margin: 2px 0 0; color: #20342a; font-size: 17px; }
+.selected-class-stats { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 10px; }
+.selected-class-stats span { display: grid; gap: 4px; padding: 9px 11px; border-radius: 7px; background: #f7f9f3; color: #667166; font-size: 9px; }
+.selected-class-stats strong { color: #24352a; font-size: 16px; }
+.selected-class-stats strong.green-text { color: #146336; }.selected-class-stats strong.amber-text { color: #a26413; }
+.hold-timer { color: #a26413; font-size: 12px; font-variant-numeric: tabular-nums; }
+
 
 .admission-steps { display: flex; align-items: center; justify-content: space-around; gap: 11px; margin-top: 13px; padding: 10px 17px; border: 1px solid #e0e8d8; border-radius: 9px; background: #f0f4e8; }
 .step-item { display: flex; align-items: center; gap: 9px; }
@@ -201,6 +212,7 @@ h1,h2,h3,p { margin-top: 0; }
   .main-content { margin-left: 62px; }
   .page-content { width: calc(100% - 26px); }.breadcrumb { gap: 7px; font-size: 9px; }
   .summary-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.summary-card { min-height: 57px; }.class-section-heading { align-items: start; flex-direction: column; }.class-filters { width: 100%; }.search-field { flex: 1; width: auto; }.shift-select { flex: 0 0 auto; }
+  .selected-class-stats { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .admin-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (max-width: 520px) {
