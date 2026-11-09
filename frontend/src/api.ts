@@ -71,6 +71,8 @@ export const api = {
     request<AdmittedStudent[]>("/classes/" + encodeURIComponent(classId) + "/admissions"),
   deleteClass: (classId: string) =>
     request<void>("/classes/" + encodeURIComponent(classId), { method: "DELETE" }),
+  removeAdmittedStudent: (classId: string, holdId: string) =>
+    request<void>("/classes/" + encodeURIComponent(classId) + "/admissions/" + encodeURIComponent(holdId), { method: "DELETE" }),
   getHolds: (studentId: string) =>
     request<StudentHold[]>("/me/holds", {}, studentId),
   holdSeat: (classId: string, studentId: string, studentName: string) =>

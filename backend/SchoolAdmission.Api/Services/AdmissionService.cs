@@ -238,6 +238,28 @@ public sealed class AdmissionService(
         return new ConfirmHoldResponse(hold.Id, hold.Status);
     }
 
+    public async Task<bool> RemoveAdmittedStudentAsync(
+        string classId,
+        string holdId,
+        CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await LockClassAsync(classId, cancellationToken);
+
+        var hold = await db.Holds.SingleOrDefaultAsync(
+            item => item.Id == holdId && item.ClassId == classId && item.Status == HoldStatus.Confirmed,
+            cancellationToken);
+        if (hold is null)
+        {
+            return false;
+        }
+
+        hold.Status = HoldStatus.Cancelled;
+        await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
+
     public async Task CancelHoldAsync(
         string holdId,
         string studentId,

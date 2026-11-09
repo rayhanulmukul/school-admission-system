@@ -54,6 +54,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [savingClass, setSavingClass] = useState(false);
   const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
+  const [removingHoldId, setRemovingHoldId] = useState<string | null>(null);
   const [busyHoldId, setBusyHoldId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -214,6 +215,28 @@ function App() {
       setError(requestError instanceof Error ? requestError.message : "Could not delete the class.");
     } finally {
       setDeletingClassId(null);
+    }
+  }
+
+  async function removeAdmittedStudent(student: AdmittedStudent) {
+    if (!admittedClass) {
+      return;
+    }
+    if (!window.confirm(`Remove ${student.studentName || student.studentId} from ${displayClassName(admittedClass.name)}? Their seat will be released.`)) {
+      return;
+    }
+    setRemovingHoldId(student.holdId);
+    setError("");
+    setNotice("");
+    try {
+      await api.removeAdmittedStudent(admittedClass.id, student.holdId);
+      setAdmittedStudents((current) => current.filter((item) => item.holdId !== student.holdId));
+      setNotice("Student removed from the admitted list and the seat was released.");
+      await refreshClasses();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not remove this student.");
+    } finally {
+      setRemovingHoldId(null);
     }
   }
 
@@ -527,13 +550,14 @@ function App() {
               {loadingAdmitted ? <p className="applications-empty">Loading admitted students…</p> : admittedStudents.length === 0 ? <p className="applications-empty">No student has been admitted to this class yet.</p> : (
                 <div className="admin-admitted-page">
                   <table className="admin-admitted-table">
-                    <thead><tr><th>#</th><th>Student name</th><th>Birth registration number</th></tr></thead>
+                    <thead><tr><th>#</th><th>Student name</th><th>Birth registration number</th><th>Action</th></tr></thead>
                     <tbody>
                       {admittedStudents.map((student, index) => (
                         <tr key={student.holdId}>
                           <td>{index + 1}</td>
                           <td>{student.studentName || "Not provided"}</td>
                           <td>{student.studentId}</td>
+                          <td><button className="delete-pill" aria-label={`Remove ${student.studentName || student.studentId}`} disabled={removingHoldId === student.holdId} onClick={() => void removeAdmittedStudent(student)}>{removingHoldId === student.holdId ? "Removing…" : "Delete"}</button></td>
                         </tr>
                       ))}
                     </tbody>

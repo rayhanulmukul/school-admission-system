@@ -45,6 +45,8 @@ All request and response bodies use JSON. Student actions identify the student w
 | `GET` | `/classes/{classId}` | Get a class and its current seat counts |
 | `POST` | `/classes/{classId}/holds` | Hold an available seat for the requesting student (optional JSON body `{ "studentName": "..." }`) |
 | `GET` | `/classes/{classId}/admissions` | List confirmed students (name and registration number) for a class |
+| `DELETE` | `/classes/{classId}` | Delete a class. Returns `409` if any student is admitted to it |
+| `DELETE` | `/classes/{classId}/admissions/{holdId}` | Remove one admitted student, freeing the seat. Returns `204`, or `404` if not found |
 | `GET` | `/holds/{holdId}` | Get a hold and its current status |
 | `POST` | `/holds/{holdId}/confirm` | Confirm a hold belonging to the requesting student |
 | `DELETE` | `/holds/{holdId}` | Cancel a hold belonging to the requesting student |

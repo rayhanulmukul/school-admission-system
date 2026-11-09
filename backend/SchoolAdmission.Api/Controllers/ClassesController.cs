@@ -50,6 +50,16 @@ public sealed class ClassesController(AdmissionService admissionService) : Contr
         return deleted ? NoContent() : NotFound();
     }
 
+    [HttpDelete("{classId}/admissions/{holdId}")]
+    public async Task<IActionResult> RemoveAdmittedStudent(
+        string classId,
+        string holdId,
+        CancellationToken cancellationToken)
+    {
+        var removed = await admissionService.RemoveAdmittedStudentAsync(classId, holdId, cancellationToken);
+        return removed ? NoContent() : NotFound();
+    }
+
     [HttpPost("{classId}/holds")]
     public async Task<ActionResult<HoldResponse>> CreateHold(
         string classId,
