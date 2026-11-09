@@ -69,6 +69,8 @@ export const api = {
     }),
   getClassAdmissions: (classId: string) =>
     request<AdmittedStudent[]>("/classes/" + encodeURIComponent(classId) + "/admissions"),
+  deleteClass: (classId: string) =>
+    request<void>("/classes/" + encodeURIComponent(classId), { method: "DELETE" }),
   getHolds: (studentId: string) =>
     request<StudentHold[]>("/me/holds", {}, studentId),
   holdSeat: (classId: string, studentId: string, studentName: string) =>

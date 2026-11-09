@@ -53,6 +53,7 @@ function App() {
   const [loadingAdmitted, setLoadingAdmitted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingClass, setSavingClass] = useState(false);
+  const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
   const [busyHoldId, setBusyHoldId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -195,6 +196,24 @@ function App() {
       setError(requestError instanceof Error ? requestError.message : "Could not load admitted students.");
     } finally {
       setLoadingAdmitted(false);
+    }
+  }
+
+  async function deleteClass(admissionClass: AdmissionClass) {
+    if (!window.confirm(`Delete ${displayClassName(admissionClass.name)}? This cannot be undone.`)) {
+      return;
+    }
+    setDeletingClassId(admissionClass.id);
+    setError("");
+    setNotice("");
+    try {
+      await api.deleteClass(admissionClass.id);
+      await refreshClasses();
+      setNotice("Class deleted.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not delete the class.");
+    } finally {
+      setDeletingClassId(null);
     }
   }
 
@@ -542,7 +561,7 @@ function App() {
                 </form>
               )}
               <div className="admin-class-list">
-                <div className="admin-list-heading"><span>Class</span><span>Shift</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span><span>Students</span></div>
+                <div className="admin-list-heading"><span>Class</span><span>Shift</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span><span>Students</span><span>Delete</span></div>
                 {loading ? <p className="applications-empty">Loading classes…</p> : classes.length === 0 ? <p className="applications-empty">No classes have been created yet.</p> : classes.map((admissionClass) => (
                   <div className="admin-list-row" key={admissionClass.id}>
                     <div className="admin-class-cell">
@@ -554,6 +573,7 @@ function App() {
                     <span>{admissionClass.heldSeats}</span>
                     <span>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</span>
                     <button className="view-pill" aria-label={`View admitted students in ${admissionClass.name}`} onClick={() => void openAdmitted(admissionClass)}>View <span aria-hidden="true">→</span></button>
+                    <button className="delete-pill" aria-label={`Delete ${admissionClass.name}`} disabled={deletingClassId === admissionClass.id} onClick={() => void deleteClass(admissionClass)}>{deletingClassId === admissionClass.id ? "Deleting…" : "Delete"}</button>
                   </div>
                 ))}
               </div>

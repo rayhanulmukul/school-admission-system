@@ -28,6 +28,33 @@ public sealed class AdmissionService(
         return ToClassResponse(admissionClass, 0, 0);
     }
 
+    public async Task<bool> DeleteClassAsync(string classId, CancellationToken cancellationToken)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+        await LockClassAsync(classId, cancellationToken);
+
+        var exists = await db.Classes.AnyAsync(admissionClass => admissionClass.Id == classId, cancellationToken);
+        if (!exists)
+        {
+            return false;
+        }
+
+        var hasAdmittedStudents = await db.Holds.AnyAsync(
+            hold => hold.ClassId == classId && hold.Status == HoldStatus.Confirmed,
+            cancellationToken);
+        if (hasAdmittedStudents)
+        {
+            throw new AdmissionConflictException(
+                "This class has admitted students and cannot be deleted.");
+        }
+
+        await db.Classes
+            .Where(admissionClass => admissionClass.Id == classId)
+            .ExecuteDeleteAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<IReadOnlyList<ClassResponse>> GetClassesAsync(
         CancellationToken cancellationToken)
     {

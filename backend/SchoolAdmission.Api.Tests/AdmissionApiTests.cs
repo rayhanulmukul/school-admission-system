@@ -125,6 +125,29 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
     }
 
     [Fact]
+    public async Task DeleteClass_RemovesClassUnlessStudentsAreAdmitted()
+    {
+        var admissionClass = await CreateClassAsync("Class 13 - Morning Shift", 2);
+        var admittedHold = await CreateHoldAsync(admissionClass.Id, "reg-delete-admitted");
+        var hold = await admittedHold.Content.ReadFromJsonAsync<HoldResponse>(JsonOptions);
+        using var confirmRequest = new HttpRequestMessage(
+            HttpMethod.Post, $"/holds/{hold!.HoldId}/confirm");
+        confirmRequest.Headers.Add("X-Student-Id", "reg-delete-admitted");
+        Assert.Equal(HttpStatusCode.OK, (await fixture.Client.SendAsync(confirmRequest)).StatusCode);
+
+        var blocked = await fixture.Client.DeleteAsync($"/classes/{admissionClass.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
+
+        var emptyClass = await CreateClassAsync("Class 13 - Day Shift", 2);
+        await CreateHoldAsync(emptyClass.Id, "reg-delete-held");
+        var deleted = await fixture.Client.DeleteAsync($"/classes/{emptyClass.Id}");
+        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
+
+        Assert.Equal(HttpStatusCode.NotFound, (await fixture.Client.GetAsync($"/classes/{emptyClass.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await fixture.Client.DeleteAsync($"/classes/{emptyClass.Id}")).StatusCode);
+    }
+
+    [Fact]
     public async Task Hold_RejectsFullClassDuplicateStudentAndMissingStudentId()
     {
         var admissionClass = await CreateClassAsync("Class 8 - Morning Shift", 1);

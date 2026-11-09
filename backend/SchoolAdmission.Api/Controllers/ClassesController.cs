@@ -41,6 +41,15 @@ public sealed class ClassesController(AdmissionService admissionService) : Contr
         return response is null ? NotFound() : Ok(response);
     }
 
+    [HttpDelete("{classId}")]
+    public async Task<IActionResult> Delete(
+        string classId,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await admissionService.DeleteClassAsync(classId, cancellationToken);
+        return deleted ? NoContent() : NotFound();
+    }
+
     [HttpPost("{classId}/holds")]
     public async Task<ActionResult<HoldResponse>> CreateHold(
         string classId,
