@@ -120,7 +120,18 @@ h1,h2,h3,p { margin-top: 0; }
 .checkout-total { display: flex; align-items: center; justify-content: space-between; margin: 9px 0 3px; padding-top: 8px; border-top: 1px solid #e1e9db; color: #68756b; font-size: 9px; }
 .checkout-total strong { color: #124e2c; font-size: 14px; }
 .demo-disclaimer { margin: 0 0 8px; color: #7d7862; font-size: 8px; }
-.cancel-reservation { width: 100%; margin-top: 6px; padding: 5px; border: 0; color: #788276; background: transparent; font-size: 8px; }
+.cancel-button { flex: 0 0 auto; min-height: 42px; padding: 0 18px; border: 1px solid #d9b9b0; border-radius: 6px; color: #9a3b2e; background: #fff; font-size: 12px; font-weight: 600; }
+.cancel-button:hover:not(:disabled) { background: #fdf3f0; }
+.cancel-button:disabled { cursor: not-allowed; opacity: .5; }
+.admission-guide { display: grid; gap: 8px; margin: 0; padding: 12px 14px; list-style: none; border-radius: 8px; background: #f5f8f2; }
+.admission-guide li { display: flex; align-items: center; gap: 10px; color: #3b4a3f; font-size: 12px; }
+.admission-guide li > span { width: 20px; height: 20px; flex: 0 0 20px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--forest); font-size: 10px; font-weight: 700; }
+.hold-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #e6dcc4; border-radius: 8px; background: #fbf8ef; }
+.hold-label { display: block; color: #6f7a70; font-size: 10px; }
+.hold-card strong { color: #20342a; font-size: 13px; }
+.hold-timer-pill { display: grid; justify-items: end; gap: 2px; color: #6f7a70; font-size: 10px; }
+.hold-timer-pill .hold-timer { font-size: 16px; font-weight: 700; }
+.hold-actions .pay-button { flex: 1 1 220px; min-height: 42px; font-size: 12px; }
 .confirmed-panel { min-height: 42px; display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid #cfe4d2; border-radius: 7px; color: #2b794a; background: #f1f8ee; }
 .confirmed-panel > span:first-child { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: #3a9858; }
 .confirmed-panel > span:last-child { display: grid; gap: 2px; }.confirmed-panel strong { font-size: 9px; }.confirmed-panel small { color: #668070; font-size: 7px; }

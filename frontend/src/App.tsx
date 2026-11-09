@@ -385,21 +385,34 @@ function App() {
                       <span><small>On hold</small><strong className="amber-text">{selectedClass.heldSeats}</strong></span>
                       <span><small>Admission fee</small><strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong></span>
                     </div>
+                    {selectedHold?.status !== "CONFIRMED" && (
+                      <ol className="admission-guide" aria-label="How to get admitted">
+                        <li><span>1</span>Enter your name and birth registration number, then submit.</li>
+                        <li><span>2</span>Your seat is held for a limited time.</li>
+                        <li><span>3</span>{selectedClass.admissionFee > 0 ? "Pay the admission fee" : "Confirm"} to complete your admission.</li>
+                      </ol>
+                    )}
                     {selectedHold?.status === "HELD" ? (
                       <div className="reserve-panel">
-                        <div className="hold-status">
-                          <span>Seat reserved for <strong>{studentName.trim()}</strong></span>
-                          <span>Time left: <strong className="hold-timer">{formatRemaining(selectedHold.expiresAt, now)}</strong></span>
+                        <div className="hold-card">
+                          <div>
+                            <span className="hold-label">Seat reserved for</span>
+                            <strong>{studentName.trim() || studentId.trim()}</strong>
+                          </div>
+                          <div className="hold-timer-pill">
+                            <span>Time left</span>
+                            <strong className="hold-timer">{formatRemaining(selectedHold.expiresAt, now)}</strong>
+                          </div>
                         </div>
                         <div className="hold-actions">
-                          <button className="apply-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void payDemo(selectedHold)}>
+                          <button className="apply-button pay-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void payDemo(selectedHold)}>
                             {busyHoldId === selectedHold.holdId
                               ? "Processing…"
                               : selectedClass.admissionFee > 0
                                 ? `Pay ${formatCurrency(selectedClass.admissionFee)} & complete`
                                 : "Complete admission"} <span>→</span>
                           </button>
-                          <button className="cancel-reservation" disabled={busyHoldId === selectedHold.holdId} onClick={() => void cancelHold(selectedHold)}>Cancel</button>
+                          <button className="cancel-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void cancelHold(selectedHold)}>Cancel reservation</button>
                         </div>
                         <p className="demo-disclaimer">Demo payment only. No real money is charged.</p>
                       </div>
