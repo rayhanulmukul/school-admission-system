@@ -196,8 +196,6 @@ h1,h2,h3,p { margin-top: 0; }
 .page-content:has(.apply-page), .page-content:has(.status-page) { width: calc(100% - 56px); }
 .apply-page { width: 100%; }
 .apply-page-header h2 { margin: 2px 0 0; color: #20342a; font-size: 20px; }
-.back-button { flex-shrink: 0; padding: 8px 16px; border: 0; border-radius: 999px; color: #fff; background: #12829c; font-size: 12px; font-weight: 650; cursor: pointer; transition: background .15s ease; }
-.back-button:hover { background: #0d6a80; }
 .apply-steps { display: flex; align-items: center; gap: 10px; margin: 0 254px 12px 0; padding: 0; list-style: none; color: #667166; font-size: 12px; }
 .apply-steps li { display: flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; }
 .apply-steps li:not(:last-child) { flex: 1 1 auto; }

@@ -448,7 +448,7 @@ function App() {
                   <p className="eyebrow">ADMISSION 2026-2027</p>
                   <h2>Apply for {displayClassName(selectedClass.name)}</h2>
                 </div>
-                <button className="back-button" onClick={() => {
+                <button className="back-pill" onClick={() => {
                   setActiveView("admissions");
                   window.scrollTo({ top: applyReturnScrollY.current });
                 }}>← Back to classes</button>
