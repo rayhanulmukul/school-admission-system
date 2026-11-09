@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { api, AdmissionClass, StudentHold } from "./api";
 
-type View = "classes" | "applications";
+type View = "classes" | "applications" | "admin";
 
 function App() {
   const [classes, setClasses] = useState<AdmissionClass[]>([]);
@@ -128,46 +128,68 @@ function App() {
           <span className="brand-mark">N</span>
           <span className="brand-name">Northstar <span>Admissions</span></span>
         </a>
-        <nav className="main-nav" aria-label="Main navigation">
+        <nav className="main-nav" aria-label="Portal navigation">
+          <div className="nav-group" aria-label="Student portal">
+            <button
+              className={activeView === "classes" ? "nav-link active" : "nav-link"}
+              onClick={() => setActiveView("classes")}
+            >
+              Classes
+            </button>
+            <button
+              className={activeView === "applications" ? "nav-link active" : "nav-link"}
+              onClick={() => setActiveView("applications")}
+            >
+              My applications
+              {activeHolds.length > 0 && <span className="nav-count">{activeHolds.length}</span>}
+            </button>
+          </div>
           <button
-            className={activeView === "classes" ? "nav-link active" : "nav-link"}
-            onClick={() => setActiveView("classes")}
+            className={activeView === "admin" ? "nav-link active" : "nav-link"}
+            onClick={() => setActiveView("admin")}
           >
-            Classes
-          </button>
-          <button
-            className={activeView === "applications" ? "nav-link active" : "nav-link"}
-            onClick={() => setActiveView("applications")}
-          >
-            My applications
-            {activeHolds.length > 0 && <span className="nav-count">{activeHolds.length}</span>}
+            Admin portal
           </button>
         </nav>
-        <span className="school-label">School admission</span>
+        <span className="school-label">
+          {activeView === "admin" ? "School administration" : "School admission"}
+        </span>
       </header>
 
       <main className="page-content">
         <section className="page-heading">
           <div>
-            <p className="eyebrow">NORTHSTAR SCHOOL</p>
-            <h1>{activeView === "classes" ? "Find your class" : "My applications"}</h1>
+            <p className="eyebrow">
+              {activeView === "admin" ? "SCHOOL ADMINISTRATION" : "NORTHSTAR SCHOOL"}
+            </p>
+            <h1>
+              {activeView === "classes"
+                ? "Find your class"
+                : activeView === "admin"
+                  ? "Manage classes"
+                  : "My applications"}
+            </h1>
             <p className="page-description">
               {activeView === "classes"
                 ? "Choose a class to check availability and reserve a seat."
-                : "Review and manage your seat reservations."}
+                : activeView === "admin"
+                  ? "Create classes and review seat availability."
+                  : "Review and manage your seat reservations."}
             </p>
           </div>
-          <label className="student-field" htmlFor="student-id">
-            <span>Student ID</span>
-            <input
-              id="student-id"
-              value={studentId}
-              onChange={(event) => setStudentId(event.target.value)}
-              placeholder="Enter your student ID"
-              maxLength={80}
-              autoComplete="off"
-            />
-          </label>
+          {activeView !== "admin" && (
+            <label className="student-field" htmlFor="student-id">
+              <span>Student ID</span>
+              <input
+                id="student-id"
+                value={studentId}
+                onChange={(event) => setStudentId(event.target.value)}
+                placeholder="Enter your student ID"
+                maxLength={80}
+                autoComplete="off"
+              />
+            </label>
+          )}
         </section>
 
         {(error || notice) && (
@@ -179,26 +201,28 @@ function App() {
           </div>
         )}
 
-        {activeView === "classes" ? (
+        {activeView === "classes" || activeView === "admin" ? (
           <section className="catalog">
             <div className="catalog-heading">
               <div>
-                <h2>Available classes</h2>
+                <h2>{activeView === "admin" ? "Class capacity" : "Available classes"}</h2>
                 <span>{classes.length} {classes.length === 1 ? "class" : "classes"}</span>
               </div>
-              <button
-                className="secondary-button"
-                onClick={() => {
-                  setShowClassForm(!showClassForm);
-                  setError("");
-                  setNotice("");
-                }}
-              >
-                {showClassForm ? "Close" : "+ Add class"}
-              </button>
+              {activeView === "admin" && (
+                <button
+                  className="secondary-button"
+                  onClick={() => {
+                    setShowClassForm(!showClassForm);
+                    setError("");
+                    setNotice("");
+                  }}
+                >
+                  {showClassForm ? "Close" : "+ Add class"}
+                </button>
+              )}
             </div>
 
-            {showClassForm && (
+            {activeView === "admin" && showClassForm && (
               <form className="create-class-form" onSubmit={(event) => void submitClass(event)}>
                 <label>
                   Class and shift
@@ -264,24 +288,31 @@ function App() {
                       <div
                         className="seat-progress"
                         role="progressbar"
-                        aria-label="Class seats reserved"
+                        aria-label="Class seats occupied"
                         aria-valuenow={percent}
                         aria-valuemin={0}
                         aria-valuemax={100}
                       >
                         <span style={{ width: `${percent}%` }} />
                       </div>
-                      <button
-                        className="primary-button reserve-button"
-                        disabled={admissionClass.availableSeats <= 0 || alreadyApplied || busyHoldId === admissionClass.id}
-                        onClick={() => void holdSeat(admissionClass)}
-                      >
-                        {busyHoldId === admissionClass.id
-                          ? "Reserving…"
-                          : alreadyApplied
-                            ? "Already applied"
-                            : "Reserve a seat"}
-                      </button>
+                      {activeView === "admin" ? (
+                        <div className="admin-capacity">
+                          <span>{admissionClass.confirmedSeats} confirmed</span>
+                          <span>{admissionClass.heldSeats} on hold</span>
+                        </div>
+                      ) : (
+                        <button
+                          className="primary-button reserve-button"
+                          disabled={admissionClass.availableSeats <= 0 || alreadyApplied || busyHoldId === admissionClass.id}
+                          onClick={() => void holdSeat(admissionClass)}
+                        >
+                          {busyHoldId === admissionClass.id
+                            ? "Reserving…"
+                            : alreadyApplied
+                              ? "Already applied"
+                              : "Reserve a seat"}
+                        </button>
+                      )}
                     </article>
                   );
                 })}
