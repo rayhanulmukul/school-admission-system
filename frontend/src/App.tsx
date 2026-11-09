@@ -448,30 +448,30 @@ function App() {
               )}
             </>
           ) : activeView === "applications" ? (
-            <section className="applications-section" id="my-applications">
-              <div className="section-title-row">
-                <div><p className="eyebrow">ADMISSION STATUS</p><h2>My applications</h2></div>
-              </div>
-              <form className="status-lookup-form" onSubmit={(event) => void checkApplicationStatus(event)}>
-                <input value={lookupId} onChange={(event) => setLookupId(event.target.value)} placeholder="Birth registration number" maxLength={80} inputMode="numeric" autoComplete="off" aria-label="Birth registration number" />
-                <button className="apply-button" type="submit" disabled={lookupBusy || !lookupId.trim()}>{lookupBusy ? "Checking…" : "Check"}</button>
-              </form>
-              {lookupError && <p className="form-error">{lookupError}</p>}
-              {lookupHolds && (lookupHolds.length === 0 ? (
-                <p className="applications-empty">No application found for this registration number.</p>
-              ) : (
-                <>
-                  {lookupHolds.find((hold) => hold.status === "CONFIRMED") && (
-                    <div className="confirmed-panel">
-                      <span>✓</span>
-                      <span><strong>Admitted to {lookupHolds.find((hold) => hold.status === "CONFIRMED")?.className}</strong></span>
+            <section className="status-page" id="my-applications">
+              <h2>My applications</h2>
+              <div className="status-card">
+                <form className="status-lookup-form" onSubmit={(event) => void checkApplicationStatus(event)}>
+                  <input value={lookupId} onChange={(event) => setLookupId(event.target.value)} placeholder="Birth registration number" maxLength={80} inputMode="numeric" autoComplete="off" aria-label="Birth registration number" />
+                  <button className="apply-button" type="submit" disabled={lookupBusy || !lookupId.trim()}>{lookupBusy ? "Checking…" : "Check"}</button>
+                </form>
+                {lookupError && <p className="form-error">{lookupError}</p>}
+                {lookupHolds && (lookupHolds.length === 0 ? (
+                  <p className="applications-empty">No application found for this registration number.</p>
+                ) : (
+                  <>
+                    {lookupHolds.find((hold) => hold.status === "CONFIRMED") && (
+                      <div className="confirmed-panel">
+                        <span>✓</span>
+                        <span><strong>Admitted to {lookupHolds.find((hold) => hold.status === "CONFIRMED")?.className}</strong></span>
+                      </div>
+                    )}
+                    <div className="application-list">
+                      {lookupHolds.map((hold) => renderApplicationRow(hold))}
                     </div>
-                  )}
-                  <div className="application-list">
-                    {lookupHolds.map((hold) => renderApplicationRow(hold))}
-                  </div>
-                </>
-              ))}
+                  </>
+                ))}
+              </div>
             </section>
           ) : (
             <section className="admin-section">

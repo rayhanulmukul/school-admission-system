@@ -167,6 +167,9 @@ h1,h2,h3,p { margin-top: 0; }
 .text-button { padding: 6px; border: 0; color: #17613a; background: transparent; font-size: 9px; font-weight: 600; }
 .status-lookup { margin-top: 16px; padding-top: 14px; border-top: 1px solid #edf0ea; }
 .status-lookup .eyebrow { margin: 0 0 8px; }
+.status-page { max-width: 760px; }
+.status-page h2 { margin: 0 0 16px; color: #16442d; font: 700 22px/1.2 "Playfair Display", Georgia, serif; }
+.status-card { display: grid; gap: 14px; padding: 18px; border: 1px solid #e5e7df; border-radius: 8px; background: #fff; }
 .status-lookup-form { display: flex; gap: 8px; max-width: 420px; }
 .status-lookup-form input { flex: 1; min-width: 0; height: 38px; padding: 0 11px; border: 1px solid #dfe4dc; border-radius: 6px; font-size: 11px; }
 .status-lookup-form .apply-button { width: auto; padding: 0 16px; }
