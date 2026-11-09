@@ -401,9 +401,9 @@ function App() {
                     </div>
                     {selectedHold?.status !== "CONFIRMED" && (
                       <ol className="admission-guide" aria-label="How to get admitted">
-                        <li><span>1</span>Enter your name and birth registration number, then submit.</li>
-                        <li><span>2</span>Your seat is held for a limited time.</li>
-                        <li><span>3</span>{selectedClass.admissionFee > 0 ? "Pay the admission fee" : "Confirm"} to complete your admission.</li>
+                        <li><span>1</span>Type your full name and birth registration number below, then click Submit &amp; apply.</li>
+                        <li><span>2</span>Your seat is reserved for you. Finish before the timer runs out.</li>
+                        <li><span>3</span>{selectedClass.admissionFee > 0 ? `Click Pay ${formatCurrency(selectedClass.admissionFee)} & complete` : "Click Complete admission"} to confirm your admission.</li>
                       </ol>
                     )}
                     {selectedHold?.status === "HELD" ? (
@@ -434,11 +434,11 @@ function App() {
                       <div className="confirmed-panel"><span>✓</span><span><strong>Admission complete</strong><small>Payment received · {selectedClass.name}</small></span></div>
                     ) : (
                       <form className="reserve-form" onSubmit={(event) => { event.preventDefault(); void holdSeat(selectedClass); }}>
-                        <label>Student name
-                          <input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="Full name" maxLength={100} autoComplete="name" required />
+                        <label>Student's full name
+                          <input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="As written on the birth certificate" maxLength={100} autoComplete="name" required />
                         </label>
                         <label>Birth registration number
-                          <input value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="17-digit number" maxLength={80} inputMode="numeric" autoComplete="off" required />
+                          <input value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="17-digit number from the birth certificate" maxLength={80} inputMode="numeric" autoComplete="off" required />
                         </label>
                         <button className="apply-button" type="submit" disabled={selectedClass.availableSeats <= 0 || busyHoldId === selectedClass.id}>
                           {busyHoldId === selectedClass.id ? "Submitting…" : "Submit & apply"} <span>→</span>
