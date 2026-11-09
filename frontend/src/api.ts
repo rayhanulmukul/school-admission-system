@@ -2,6 +2,7 @@ export type AdmissionClass = {
   id: string;
   name: string;
   totalSeats: number;
+  admissionFee: number;
   heldSeats: number;
   confirmedSeats: number;
   availableSeats: number;
@@ -11,6 +12,7 @@ export type StudentHold = {
   holdId: string;
   classId: string;
   className: string;
+  admissionFee: number;
   status: "HELD" | "CONFIRMED" | "EXPIRED" | "CANCELLED";
   expiresAt: string;
 };
@@ -54,10 +56,10 @@ async function request<T>(
 
 export const api = {
   getClasses: () => request<AdmissionClass[]>("/classes"),
-  createClass: (name: string, totalSeats: number) =>
+  createClass: (name: string, totalSeats: number, admissionFee: number) =>
     request<AdmissionClass>("/classes", {
       method: "POST",
-      body: JSON.stringify({ name, totalSeats }),
+      body: JSON.stringify({ name, totalSeats, admissionFee }),
     }),
   getHolds: (studentId: string) =>
     request<StudentHold[]>("/me/holds", {}, studentId),

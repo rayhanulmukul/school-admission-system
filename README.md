@@ -52,7 +52,9 @@ All request and response bodies use JSON. Student actions identify the student w
 
 Seat holds expire after the configured duration. The API returns `409 Conflict` if a class is full, a student already has an active application for that class, or a hold cannot transition to the requested status. Hold states are `HELD`, `CONFIRMED`, `EXPIRED`, and `CANCELLED`.
 
-The UI keeps student admission separate from school administration. Students browse classes, reserve seats, and manage their applications from the student portal. School staff use the admin portal to create classes and review capacity. The assignment does not define an authentication API, so the admin portal is a separate workflow, not an access-control boundary.
+The UI follows the supplied school-portal reference. The student page includes a locally saved profile, class search and shift filters, live seat summaries, inline reservations, applications, and an in-page demo checkout. The admin portal separately creates classes with total seats and an admission fee.
+
+**Payments are a UI/API demo only:** completing checkout confirms the seat but does not charge money or contact a payment provider. The assignment does not provide payment integration details or an authentication API, so the admin portal is a separate workflow, not an access-control boundary.
 
 ## Checks
 

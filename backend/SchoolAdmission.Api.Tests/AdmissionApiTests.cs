@@ -14,7 +14,7 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
     [Fact]
     public async Task CreateClass_ListsAndReturnsSeatCounts()
     {
-        var admissionClass = await CreateClassAsync("Class 6 - Morning Shift", 3);
+        var admissionClass = await CreateClassAsync("Class 6 - Morning Shift", 3, 1500m);
 
         var heldResponse = await CreateHoldAsync(admissionClass.Id, "student-a");
         Assert.Equal(HttpStatusCode.Created, heldResponse.StatusCode);
@@ -25,12 +25,14 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
         Assert.Equal(1, listedClass.HeldSeats);
         Assert.Equal(0, listedClass.ConfirmedSeats);
         Assert.Equal(2, listedClass.AvailableSeats);
+        Assert.Equal(1500m, listedClass.AdmissionFee);
 
         var details = await fixture.Client.GetFromJsonAsync<ClassResponse>(
             $"/classes/{admissionClass.Id}", JsonOptions);
         Assert.NotNull(details);
         Assert.Equal(3, details.TotalSeats);
         Assert.Equal(1, details.HeldSeats);
+        Assert.Equal(1500m, details.AdmissionFee);
     }
 
     [Fact]
@@ -67,6 +69,7 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
         var studentHolds = await GetStudentHoldsAsync("student-b");
         var studentHold = Assert.Single(studentHolds);
         Assert.Equal("CONFIRMED", studentHold.Status);
+        Assert.Equal(0m, studentHold.AdmissionFee);
 
         var classDetails = await fixture.Client.GetFromJsonAsync<ClassResponse>(
             $"/classes/{admissionClass.Id}", JsonOptions);
@@ -191,10 +194,13 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
         Assert.Equal(0, details.AvailableSeats);
     }
 
-    private async Task<ClassResponse> CreateClassAsync(string name, int totalSeats)
+    private async Task<ClassResponse> CreateClassAsync(
+        string name,
+        int totalSeats,
+        decimal admissionFee = 0)
     {
         var response = await fixture.Client.PostAsJsonAsync(
-            "/classes", new { name, totalSeats });
+            "/classes", new { name, totalSeats, admissionFee });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var admissionClass = await response.Content.ReadFromJsonAsync<ClassResponse>(JsonOptions);
         Assert.NotNull(admissionClass);
@@ -222,6 +228,7 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
         string Id,
         string Name,
         int TotalSeats,
+        decimal AdmissionFee,
         int HeldSeats,
         int ConfirmedSeats,
         int AvailableSeats);
@@ -237,6 +244,7 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
         string HoldId,
         string ClassId,
         string ClassName,
+        decimal AdmissionFee,
         string Status,
         DateTimeOffset ExpiresAt);
 }

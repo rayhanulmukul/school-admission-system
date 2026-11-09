@@ -18,7 +18,8 @@ public sealed class AdmissionService(
         {
             Id = $"c_{Guid.NewGuid():N}",
             Name = request.Name.Trim(),
-            TotalSeats = request.TotalSeats
+            TotalSeats = request.TotalSeats,
+            AdmissionFee = request.AdmissionFee
         };
 
         db.Classes.Add(admissionClass);
@@ -274,6 +275,7 @@ public sealed class AdmissionService(
                 hold.Id,
                 hold.ClassId,
                 hold.Class.Name,
+                hold.Class.AdmissionFee,
                 hold.Status,
                 hold.ExpiresAt))
             .ToListAsync(cancellationToken);
@@ -324,6 +326,7 @@ public sealed class AdmissionService(
             admissionClass.Id,
             admissionClass.Name,
             admissionClass.TotalSeats,
+            admissionClass.AdmissionFee,
             heldSeats,
             confirmedSeats,
             admissionClass.TotalSeats - heldSeats - confirmedSeats);

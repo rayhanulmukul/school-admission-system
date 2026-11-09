@@ -18,6 +18,8 @@ public sealed class AdmissionDbContext(
             entity.Property(admissionClass => admissionClass.Name)
                 .HasMaxLength(120)
                 .IsRequired();
+            entity.Property(admissionClass => admissionClass.AdmissionFee)
+                .HasPrecision(12, 2);
             entity.ToTable(table => table.HasCheckConstraint(
                 "CK_Classes_TotalSeats", "\"TotalSeats\" > 0"));
         });

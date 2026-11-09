@@ -1,17 +1,53 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api, AdmissionClass, StudentHold } from "./api";
 
-type View = "classes" | "applications" | "admin";
+type View = "admissions" | "admin";
+
+const profileStorageKey = "banani-admission-profile";
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("en-BD", {
+    style: "currency",
+    currency: "BDT",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function initials(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "S";
+}
+
+function shiftFor(className: string) {
+  if (/morning/i.test(className)) return "Morning Shift";
+  if (/\bday\b/i.test(className)) return "Day Shift";
+  if (/evening/i.test(className)) return "Evening Shift";
+  return "Other";
+}
 
 function App() {
+  const savedProfile = useMemo(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(profileStorageKey) ?? "{}") as {
+        name?: string;
+        studentId?: string;
+      };
+    } catch {
+      return {};
+    }
+  }, []);
   const [classes, setClasses] = useState<AdmissionClass[]>([]);
   const [holds, setHolds] = useState<StudentHold[]>([]);
+  const [studentName, setStudentName] = useState(savedProfile.name ?? "");
   const [studentId, setStudentId] = useState(
-    () => window.localStorage.getItem("admission-student-id") ?? "",
+    savedProfile.studentId ?? window.localStorage.getItem("admission-student-id") ?? "",
   );
-  const [activeView, setActiveView] = useState<View>("classes");
+  const [activeView, setActiveView] = useState<View>("admissions");
+  const [profileOpen, setProfileOpen] = useState(false);
   const [className, setClassName] = useState("");
-  const [totalSeats, setTotalSeats] = useState("30");
+  const [totalSeats, setTotalSeats] = useState("60");
+  const [admissionFee, setAdmissionFee] = useState("0");
+  const [search, setSearch] = useState("");
+  const [shiftFilter, setShiftFilter] = useState("All Shifts");
   const [showClassForm, setShowClassForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [savingClass, setSavingClass] = useState(false);
@@ -43,17 +79,37 @@ function App() {
   }, [refresh]);
 
   useEffect(() => {
-    const id = studentId.trim();
-    if (id) {
-      window.localStorage.setItem("admission-student-id", id);
-      void refreshHolds(id).catch((requestError: unknown) => {
-        setError(requestError instanceof Error ? requestError.message : "Could not load your applications.");
+    const profile = { name: studentName, studentId: studentId.trim() };
+    window.localStorage.setItem(profileStorageKey, JSON.stringify(profile));
+    if (profile.studentId) {
+      window.localStorage.setItem("admission-student-id", profile.studentId);
+      void refreshHolds(profile.studentId).catch((requestError: unknown) => {
+        setError(requestError instanceof Error ? requestError.message : "Could not load applications.");
       });
     } else {
       window.localStorage.removeItem("admission-student-id");
       setHolds([]);
     }
-  }, [studentId, refreshHolds]);
+  }, [studentName, studentId, refreshHolds]);
+
+  const counts = useMemo(() => classes.reduce(
+    (total, admissionClass) => ({
+      totalSeats: total.totalSeats + admissionClass.totalSeats,
+      availableSeats: total.availableSeats + admissionClass.availableSeats,
+      heldSeats: total.heldSeats + admissionClass.heldSeats,
+      confirmedSeats: total.confirmedSeats + admissionClass.confirmedSeats,
+    }),
+    { totalSeats: 0, availableSeats: 0, heldSeats: 0, confirmedSeats: 0 },
+  ), [classes]);
+
+  const filteredClasses = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return classes.filter((admissionClass) => {
+      const matchesName = !query || admissionClass.name.toLowerCase().includes(query);
+      const matchesShift = shiftFilter === "All Shifts" || shiftFor(admissionClass.name) === shiftFilter;
+      return matchesName && matchesShift;
+    });
+  }, [classes, search, shiftFilter]);
 
   async function submitClass(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,11 +117,12 @@ function App() {
     setError("");
     setNotice("");
     try {
-      await api.createClass(className.trim(), Number(totalSeats));
+      await api.createClass(className.trim(), Number(totalSeats), Number(admissionFee));
       setClassName("");
-      setTotalSeats("30");
+      setTotalSeats("60");
+      setAdmissionFee("0");
       setShowClassForm(false);
-      setNotice("Class added.");
+      setNotice("Class added to the admissions list.");
       await refreshClasses();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not create the class.");
@@ -76,20 +133,18 @@ function App() {
 
   async function holdSeat(admissionClass: AdmissionClass) {
     if (!studentId.trim()) {
-      setError("Enter a student ID to reserve a seat.");
-      document.getElementById("student-id")?.focus();
+      setError("Enter your birth registration number before reserving a seat.");
+      setProfileOpen(true);
+      window.setTimeout(() => document.getElementById("student-id")?.focus(), 0);
       return;
     }
     setBusyHoldId(admissionClass.id);
     setError("");
     setNotice("");
     try {
-      const hold = await api.holdSeat(admissionClass.id, studentId.trim());
-      setNotice(`Seat reserved until ${new Date(hold.expiresAt).toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}.`);
-      await refresh(studentId.trim());
+      await api.holdSeat(admissionClass.id, studentId.trim());
+      await Promise.all([refreshClasses(), refreshHolds(studentId.trim())]);
+      setNotice(`Your seat in ${admissionClass.name} is reserved. Complete checkout before the hold expires.`);
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not reserve a seat.");
     } finally {
@@ -97,292 +152,340 @@ function App() {
     }
   }
 
-  async function changeHold(hold: StudentHold, action: "confirm" | "cancel") {
+  async function cancelHold(hold: StudentHold) {
     setBusyHoldId(hold.holdId);
     setError("");
     setNotice("");
     try {
-      if (action === "confirm") {
-        await api.confirmHold(hold.holdId, studentId.trim());
-        setNotice("Seat confirmed.");
-      } else {
-        await api.cancelHold(hold.holdId, studentId.trim());
-        setNotice("Reservation cancelled.");
-      }
-      await refresh(studentId.trim());
+      await api.cancelHold(hold.holdId, studentId.trim());
+      await Promise.all([refreshClasses(), refreshHolds(studentId.trim())]);
+      setNotice("Your seat reservation was cancelled.");
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Could not update this reservation.");
+      setError(requestError instanceof Error ? requestError.message : "Could not cancel this reservation.");
     } finally {
       setBusyHoldId(null);
     }
   }
 
-  const activeHolds = holds.filter(
-    (hold) => hold.status === "HELD" || hold.status === "CONFIRMED",
-  );
+  async function payDemo(hold: StudentHold) {
+    setBusyHoldId(hold.holdId);
+    setError("");
+    setNotice("");
+    try {
+      await api.confirmHold(hold.holdId, studentId.trim());
+      await Promise.all([refreshClasses(), refreshHolds(studentId.trim())]);
+      setNotice("Admission confirmed. Demo checkout only; no money was charged.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Could not complete the demo checkout.");
+    } finally {
+      setBusyHoldId(null);
+    }
+  }
+
+  function navigateToApplications() {
+    setActiveView("admissions");
+    window.setTimeout(
+      () => document.getElementById("my-applications")?.scrollIntoView({ behavior: "smooth" }),
+      0,
+    );
+  }
 
   return (
-    <div className="app-shell">
+    <div className="portal-shell">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="Northstar School admissions">
-          <span className="brand-mark">N</span>
-          <span className="brand-name">Northstar <span>Admissions</span></span>
+        <a className="topbar-brand" href="/" aria-label="Banani Bidyaniketan School & College home">
+          <img src="/school-crest.svg" alt="" />
+          <span>BANANI BIDYANIKETAN SCHOOL &amp; COLLEGE</span>
         </a>
-        <nav className="main-nav" aria-label="Portal navigation">
-          <div className="nav-group" aria-label="Student portal">
-            <button
-              className={activeView === "classes" ? "nav-link active" : "nav-link"}
-              onClick={() => setActiveView("classes")}
-            >
-              Classes
-            </button>
-            <button
-              className={activeView === "applications" ? "nav-link active" : "nav-link"}
-              onClick={() => setActiveView("applications")}
-            >
-              My applications
-              {activeHolds.length > 0 && <span className="nav-count">{activeHolds.length}</span>}
-            </button>
-          </div>
+        <div className="header-profile">
           <button
-            className={activeView === "admin" ? "nav-link active" : "nav-link"}
-            onClick={() => setActiveView("admin")}
+            className="profile-trigger"
+            type="button"
+            aria-expanded={profileOpen}
+            aria-controls="profile-menu"
+            onClick={() => setProfileOpen(!profileOpen)}
           >
-            Admin portal
+            <span className="profile-avatar">{initials(studentName)}</span>
+            <span className="profile-trigger-copy">
+              <strong>{studentName.trim() || "Student profile"}</strong>
+              <span>{studentId.trim() || "Add registration number"}</span>
+            </span>
+            <span className="profile-chevron" aria-hidden="true">⌄</span>
           </button>
-        </nav>
-        <span className="school-label">
-          {activeView === "admin" ? "School administration" : "School admission"}
-        </span>
+          {profileOpen && (
+            <section className="profile-menu" id="profile-menu" aria-label="Student profile">
+              <div className="profile-menu-heading">
+                <strong>Student profile</strong>
+                <button type="button" onClick={() => setProfileOpen(false)} aria-label="Close profile">×</button>
+              </div>
+              <label className="profile-name-field" htmlFor="student-name">
+                <span className="field-caption">STUDENT NAME</span>
+                <input
+                  id="student-name"
+                  value={studentName}
+                  onChange={(event) => setStudentName(event.target.value)}
+                  placeholder="Your full name"
+                  maxLength={100}
+                  autoComplete="name"
+                />
+              </label>
+              <label className="student-id-field" htmlFor="student-id">
+                <span className="field-caption">BIRTH REGISTRATION NUMBER</span>
+                <input
+                  id="student-id"
+                  value={studentId}
+                  onChange={(event) => setStudentId(event.target.value)}
+                  placeholder="Enter your 17-digit number"
+                  maxLength={80}
+                  inputMode="numeric"
+                  autoComplete="off"
+                />
+              </label>
+              <button className="profile-save-button" type="button" onClick={() => setProfileOpen(false)}>Done</button>
+            </section>
+          )}
+        </div>
       </header>
 
-      <main className="page-content">
-        <section className="page-heading">
-          <div>
-            <p className="eyebrow">
-              {activeView === "admin" ? "SCHOOL ADMINISTRATION" : "NORTHSTAR SCHOOL"}
-            </p>
-            <h1>
-              {activeView === "classes"
-                ? "Find your class"
-                : activeView === "admin"
-                  ? "Manage classes"
-                  : "My applications"}
-            </h1>
-            <p className="page-description">
-              {activeView === "classes"
-                ? "Choose a class to check availability and reserve a seat."
-                : activeView === "admin"
-                  ? "Create classes and review seat availability."
-                  : "Review and manage your seat reservations."}
-            </p>
-          </div>
-          {activeView !== "admin" && (
-            <label className="student-field" htmlFor="student-id">
-              <span>Student ID</span>
-              <input
-                id="student-id"
-                value={studentId}
-                onChange={(event) => setStudentId(event.target.value)}
-                placeholder="Enter your student ID"
-                maxLength={80}
-                autoComplete="off"
-              />
-            </label>
-          )}
+      <aside className="sidebar">
+        <p className="sidebar-label">STUDENT MENU</p>
+        <nav className="sidebar-nav" aria-label="Portal navigation">
+          <button
+            className={activeView === "admissions" ? "side-link selected" : "side-link"}
+            title="Explore Classes"
+            onClick={() => {
+              setActiveView("admissions");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            <span className="side-icon">⌂</span> Explore Classes
+          </button>
+          <button className="side-link" title="My Applications" onClick={navigateToApplications}>
+            <span className="side-icon">▤</span> My Applications
+            {holds.some((hold) => hold.status === "HELD") && <span className="side-count">!</span>}
+          </button>
+        </nav>
+
+        <p className="sidebar-label admin-nav-label">ADMINISTRATION</p>
+        <nav className="sidebar-nav" aria-label="Administration navigation">
+          <button
+            className={activeView === "admin" ? "side-link selected" : "side-link"}
+            title="Class Management"
+            onClick={() => {
+              setActiveView("admin");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            <span className="side-icon">▱</span> Class Management
+          </button>
+        </nav>
+
+        <section className="sidebar-year" aria-label="Academic year">
+          <span className="year-icon">▦</span>
+          <span>Academic Year<strong>2027</strong></span>
+          <span className="year-rule" />
+          <span>School Admissions</span>
         </section>
+      </aside>
 
-        {(error || notice) && (
-          <div className={error ? "alert error-alert" : "alert success-alert"} role="status">
-            <span>{error || notice}</span>
-            <button onClick={() => { setError(""); setNotice(""); }} aria-label="Dismiss message">
-              ×
-            </button>
+      <main className="main-content">
+        <div className="page-content">
+          <div className="breadcrumb">
+            <span>⌂</span> Admissions <span>/</span>
+            <strong>{activeView === "admin" ? "Class Management" : "Explore Classes"}</strong>
+            <span className="admissions-open"><span /> Admissions Open</span>
           </div>
-        )}
 
-        {activeView === "classes" || activeView === "admin" ? (
-          <section className="catalog">
-            <div className="catalog-heading">
-              <div>
-                <h2>{activeView === "admin" ? "Class capacity" : "Available classes"}</h2>
-                <span>{classes.length} {classes.length === 1 ? "class" : "classes"}</span>
+          {(error || notice) && (
+            <div className={error ? "notice-banner error-notice" : "notice-banner success-notice"} role="status">
+              <span>{error || notice}</span>
+              <button onClick={() => { setError(""); setNotice(""); }} aria-label="Dismiss message">×</button>
+            </div>
+          )}
+
+          {activeView === "admissions" ? (
+            <>
+              <section className="summary-grid" aria-label="Seat availability summary">
+                <article className="summary-card">
+                  <span className="summary-icon green-icon">♧</span>
+                  <span className="summary-copy">Total Seats<strong>{counts.totalSeats.toLocaleString()}</strong></span>
+                </article>
+                <article className="summary-card">
+                  <span className="summary-icon blue-icon">▣</span>
+                  <span className="summary-copy">Available Seats<strong className="green-text">{counts.availableSeats.toLocaleString()}</strong></span>
+                </article>
+                <article className="summary-card">
+                  <span className="summary-icon amber-icon">♙</span>
+                  <span className="summary-copy">Seats on Hold<strong className="amber-text">{counts.heldSeats.toLocaleString()}</strong></span>
+                </article>
+                <article className="summary-card">
+                  <span className="summary-icon green-icon">✓</span>
+                  <span className="summary-copy">Confirmed Admissions<strong className="green-text">{counts.confirmedSeats.toLocaleString()}</strong></span>
+                </article>
+              </section>
+
+              <section className="class-section">
+                <div className="class-section-heading">
+                  <h2>Find your class</h2>
+                  <div className="class-filters">
+                    <label className="search-field">
+                      <span>⌕</span>
+                      <input
+                        aria-label="Search classes"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        placeholder="Search by class (e.g., Class 6, Class 7...)"
+                      />
+                    </label>
+                    <label className="shift-select"><span>▦</span>
+                      <select aria-label="Filter by shift" value={shiftFilter} onChange={(event) => setShiftFilter(event.target.value)}>
+                        <option>All Shifts</option>
+                        <option>Morning Shift</option>
+                        <option>Day Shift</option>
+                        <option>Evening Shift</option>
+                        <option>Other</option>
+                      </select>
+                    </label>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="empty-class-state">Loading available classes…</div>
+                ) : filteredClasses.length === 0 ? (
+                  <div className="empty-class-state">
+                    {classes.length === 0 ? "Admissions are opening soon. Please check back shortly." : "No classes match your search."}
+                  </div>
+                ) : (
+                  <div className="class-grid">
+                    {filteredClasses.map((admissionClass, index) => {
+                      const occupied = admissionClass.confirmedSeats + admissionClass.heldSeats;
+                      const occupiedPercent = admissionClass.totalSeats
+                        ? Math.round((occupied / admissionClass.totalSeats) * 100)
+                        : 0;
+                      const studentHold = holds.find((hold) =>
+                        hold.classId === admissionClass.id &&
+                        (hold.status === "HELD" || hold.status === "CONFIRMED"));
+
+                      return (
+                        <article id={`class-${admissionClass.id}`} className={`class-card${studentHold ? " has-application" : ""}`} key={admissionClass.id}>
+                          <div className="class-card-heading">
+                            <span className={`class-icon class-icon-${index % 5}`} aria-hidden="true">
+                              <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M3.5 5.2c3.2-.8 6-.4 8.5 1.1v13c-2.5-1.5-5.3-1.9-8.5-1.1v-13Zm17 0c-3.2-.8-6-.4-8.5 1.1v13c2.5-1.5 5.3-1.9 8.5-1.1v-13Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/>
+                              </svg>
+                            </span>
+                            <span className={admissionClass.availableSeats > 0 ? "availability-tag" : "availability-tag full"}>
+                              {admissionClass.availableSeats > 0 ? "Seats Available" : "Class Full"}
+                            </span>
+                          </div>
+                          <h3>{admissionClass.name.replace(/\s*-\s*(Morning|Day|Evening)\s+Shift/i, "")}</h3>
+                          <span className="shift-tag">{shiftFor(admissionClass.name)}</span>
+                          <div className="seat-numbers"><strong>{admissionClass.availableSeats}</strong><span> / {admissionClass.totalSeats} seats</span></div>
+                          <div className="occupancy-row">
+                            <div className="occupancy-track"><span style={{ width: `${occupiedPercent}%` }} /></div>
+                            <span>{occupiedPercent}% occupied</span>
+                          </div>
+                          <div className="seat-breakdown">
+                            <span><i className="status-check">✓</i> Confirmed: {admissionClass.confirmedSeats}</span>
+                            <span className="breakdown-divider" />
+                            <span><i className="status-hold">♙</i> Held: {admissionClass.heldSeats}</span>
+                          </div>
+                          <div className="fee-row">
+                            <span>Admission fee</span>
+                            <strong>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</strong>
+                          </div>
+                          {studentHold?.status === "HELD" ? (
+                            <div className="inline-checkout">
+                              <div className="checkout-title"><span className="checkout-lock">▣</span><span><strong>Seat reserved for you</strong><span>Hold expires {new Date(studentHold.expiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span></div>
+                              <div className="checkout-total"><span>{admissionClass.admissionFee > 0 ? "Demo admission fee" : "Admission fee"}</span><strong>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "Free"}</strong></div>
+                              <p className="demo-disclaimer">Demo checkout only. No real payment is collected.</p>
+                              <button className="apply-button" disabled={busyHoldId === studentHold.holdId} onClick={() => void payDemo(studentHold)}>
+                                {busyHoldId === studentHold.holdId
+                                  ? "Confirming…"
+                                  : admissionClass.admissionFee > 0
+                                    ? `Pay ${formatCurrency(admissionClass.admissionFee)} & confirm`
+                                    : "Confirm free admission"} <span>→</span>
+                              </button>
+                              <button className="cancel-reservation" disabled={busyHoldId === studentHold.holdId} onClick={() => void cancelHold(studentHold)}>Cancel reservation</button>
+                            </div>
+                          ) : studentHold?.status === "CONFIRMED" ? (
+                            <div className="confirmed-panel"><span>✓</span><span><strong>Admission confirmed</strong><small>Demo checkout complete · No payment was collected</small></span></div>
+                          ) : (
+                            <button
+                              className="apply-button"
+                              disabled={admissionClass.availableSeats <= 0 || busyHoldId === admissionClass.id}
+                              onClick={() => void holdSeat(admissionClass)}
+                            >
+                              {busyHoldId === admissionClass.id ? "Reserving…" : "Apply for this class"} <span>↗</span>
+                            </button>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <section className="admission-steps" aria-label="Admission steps">
+                <div className="step-item"><span className="step-number">1</span><span><strong>Choose your class</strong><small>Browse available classes and shifts.</small></span></div>
+                <span className="step-chevron">›</span>
+                <div className="step-item"><span className="step-number">2</span><span><strong>Reserve your seat</strong><small>Apply and hold a seat in your selected class.</small></span></div>
+                <span className="step-chevron">›</span>
+                <div className="step-item"><span className="step-number">3</span><span><strong>Confirm admission</strong><small>Review your application and confirm.</small></span></div>
+              </section>
+
+              <section className="applications-section" id="my-applications">
+                <div className="section-title-row"><div><p className="eyebrow">YOUR ADMISSION JOURNEY</p><h2>My applications</h2></div><button className="refresh-button" onClick={() => void refresh()}>↻ Refresh</button></div>
+                {!studentId.trim() ? (
+                  <p className="applications-empty">Add your registration number from the profile menu to see your applications.</p>
+                ) : holds.length === 0 ? (
+                  <p className="applications-empty">Your class reservations will appear here.</p>
+                ) : (
+                  <div className="application-list">
+                    {holds.map((hold) => (
+                      <article className="application-row" key={hold.holdId}>
+                        <span className="application-mark">▤</span>
+                        <span className="application-info"><strong>{hold.className}</strong><small>Application {hold.holdId.slice(0, 10)}…</small></span>
+                        <span className={`application-status status-${hold.status.toLowerCase()}`}>{hold.status.toLowerCase()}</span>
+                        {hold.status === "HELD" && <button className="text-button" onClick={() => document.getElementById(`class-${hold.classId}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}>Continue checkout ↓</button>}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </>
+          ) : (
+            <section className="admin-section">
+              <div className="admin-heading">
+                <div><p className="eyebrow">ADMISSIONS SETUP</p><h2>Class management</h2><p>Create a class with a seat capacity and admission fee.</p></div>
+                <button className="apply-button admin-add-button" onClick={() => setShowClassForm(!showClassForm)}>{showClassForm ? "Close form" : "+ Create class"}</button>
               </div>
-              {activeView === "admin" && (
-                <button
-                  className="secondary-button"
-                  onClick={() => {
-                    setShowClassForm(!showClassForm);
-                    setError("");
-                    setNotice("");
-                  }}
-                >
-                  {showClassForm ? "Close" : "+ Add class"}
-                </button>
+              {showClassForm && (
+                <form className="admin-form" onSubmit={(event) => void submitClass(event)}>
+                  <label>Class and shift<input value={className} onChange={(event) => setClassName(event.target.value)} placeholder="e.g. Class 6 - Morning Shift" maxLength={120} required /></label>
+                  <label>Total seats<input type="number" min="1" max="10000" value={totalSeats} onChange={(event) => setTotalSeats(event.target.value)} required /></label>
+                  <label>Admission fee (BDT)<input type="number" min="0" max="9999999999" step="1" value={admissionFee} onChange={(event) => setAdmissionFee(event.target.value)} required /></label>
+                  <button className="apply-button" type="submit" disabled={savingClass}>{savingClass ? "Creating…" : "Save class"} →</button>
+                </form>
               )}
-            </div>
-
-            {activeView === "admin" && showClassForm && (
-              <form className="create-class-form" onSubmit={(event) => void submitClass(event)}>
-                <label>
-                  Class and shift
-                  <input
-                    value={className}
-                    onChange={(event) => setClassName(event.target.value)}
-                    placeholder="e.g. Class 6 - Morning Shift"
-                    maxLength={120}
-                    required
-                  />
-                </label>
-                <label className="seat-input">
-                  Total seats
-                  <input
-                    type="number"
-                    min="1"
-                    max="10000"
-                    value={totalSeats}
-                    onChange={(event) => setTotalSeats(event.target.value)}
-                    required
-                  />
-                </label>
-                <button className="primary-button" type="submit" disabled={savingClass}>
-                  {savingClass ? "Adding…" : "Add class"}
-                </button>
-              </form>
-            )}
-
-            {loading ? (
-              <div className="empty-state">Loading classes…</div>
-            ) : classes.length === 0 ? (
-              <div className="empty-state">
-                <span className="empty-icon">—</span>
-                <h3>No classes available</h3>
-                <p>New classes will appear here when enrollment opens.</p>
-              </div>
-            ) : (
-              <div className="class-grid">
-                {classes.map((admissionClass, index) => {
-                  const occupied = admissionClass.confirmedSeats + admissionClass.heldSeats;
-                  const percent = admissionClass.totalSeats
-                    ? Math.round((occupied / admissionClass.totalSeats) * 100)
-                    : 0;
-                  const alreadyApplied = holds.some((hold) =>
-                    hold.classId === admissionClass.id &&
-                    (hold.status === "HELD" || hold.status === "CONFIRMED"));
-
-                  return (
-                    <article className="class-card" key={admissionClass.id}>
-                      <div className="class-card-top">
-                        <span className={`class-emblem emblem-${index % 4}`}>
-                          {admissionClass.name.match(/class\s*(\d+)/i)?.[1] ?? "C"}
-                        </span>
-                        <span className={admissionClass.availableSeats > 0 ? "availability open" : "availability full"}>
-                          <span />{admissionClass.availableSeats > 0 ? "Open" : "Full"}
-                        </span>
-                      </div>
-                      <h3>{admissionClass.name}</h3>
-                      <div className="seat-summary">
-                        <strong>{admissionClass.availableSeats}</strong>
-                        <span>of {admissionClass.totalSeats} seats available</span>
-                      </div>
-                      <div
-                        className="seat-progress"
-                        role="progressbar"
-                        aria-label="Class seats occupied"
-                        aria-valuenow={percent}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                      >
-                        <span style={{ width: `${percent}%` }} />
-                      </div>
-                      {activeView === "admin" ? (
-                        <div className="admin-capacity">
-                          <span>{admissionClass.confirmedSeats} confirmed</span>
-                          <span>{admissionClass.heldSeats} on hold</span>
-                        </div>
-                      ) : (
-                        <button
-                          className="primary-button reserve-button"
-                          disabled={admissionClass.availableSeats <= 0 || alreadyApplied || busyHoldId === admissionClass.id}
-                          onClick={() => void holdSeat(admissionClass)}
-                        >
-                          {busyHoldId === admissionClass.id
-                            ? "Reserving…"
-                            : alreadyApplied
-                              ? "Already applied"
-                              : "Reserve a seat"}
-                        </button>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-            )}
-          </section>
-        ) : (
-          <section className="catalog applications">
-            <div className="catalog-heading">
-              <div>
-                <h2>Your reservations</h2>
-                <span>{holds.length} {holds.length === 1 ? "application" : "applications"}</span>
-              </div>
-              <button className="secondary-button" onClick={() => void refresh()}>
-                Refresh
-              </button>
-            </div>
-            {!studentId.trim() ? (
-              <div className="empty-state">
-                <h3>Enter your student ID</h3>
-                <p>Your applications are linked to your student ID.</p>
-              </div>
-            ) : holds.length === 0 ? (
-              <div className="empty-state">
-                <span className="empty-icon">—</span>
-                <h3>No applications yet</h3>
-                <p>Reserved seats will appear here.</p>
-              </div>
-            ) : (
-              <div className="application-list">
-                {holds.map((hold) => (
-                  <article className="application-card" key={hold.holdId}>
-                    <div className="application-main">
-                      <h3>{hold.className}</h3>
-                      <span className="application-id">{hold.holdId}</span>
-                    </div>
-                    <span className={`status-pill status-${hold.status.toLowerCase()}`}>
-                      {hold.status.toLowerCase()}
-                    </span>
-                    {hold.status === "HELD" && (
-                      <div className="application-actions">
-                        <span className="expires">
-                          Until {new Date(hold.expiresAt).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                        <button
-                          className="primary-button"
-                          disabled={busyHoldId === hold.holdId}
-                          onClick={() => void changeHold(hold, "confirm")}
-                        >
-                          Confirm seat
-                        </button>
-                        <button
-                          className="cancel-button"
-                          disabled={busyHoldId === hold.holdId}
-                          onClick={() => void changeHold(hold, "cancel")}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    )}
-                  </article>
+              <div className="admin-class-list">
+                <div className="admin-list-heading"><span>Class</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span></div>
+                {loading ? <p className="applications-empty">Loading classes…</p> : classes.length === 0 ? <p className="applications-empty">No classes have been created yet.</p> : classes.map((admissionClass) => (
+                  <div className="admin-list-row" key={admissionClass.id}>
+                    <strong>{admissionClass.name}</strong>
+                    <span>{admissionClass.totalSeats}</span>
+                    <span>{admissionClass.confirmedSeats}</span>
+                    <span>{admissionClass.heldSeats}</span>
+                    <span>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</span>
+                  </div>
                 ))}
               </div>
-            )}
-          </section>
-        )}
-        <footer className="footer">Northstar School</footer>
+              <p className="admin-demo-note">Demo portal: the assignment does not include admin sign-in or role authorization.</p>
+            </section>
+          )}
+
+          <footer className="page-footer"><img src="/school-crest.svg" alt="" /> Banani Bidyaniketan School &amp; College <span>Academic Year 2027</span></footer>
+        </div>
       </main>
     </div>
   );

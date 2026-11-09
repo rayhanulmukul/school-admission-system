@@ -50,6 +50,8 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AdmissionDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await db.Database.ExecuteSqlRawAsync(
+        """ALTER TABLE "Classes" ADD COLUMN IF NOT EXISTS "AdmissionFee" numeric(12,2) NOT NULL DEFAULT 0""");
 }
 
 app.MapOpenApi();
