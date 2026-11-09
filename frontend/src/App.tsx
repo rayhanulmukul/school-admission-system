@@ -525,7 +525,7 @@ function App() {
           ) : (
             <section className="admin-section">
               <div className="admin-heading">
-                <div><p className="eyebrow">ADMISSIONS SETUP</p><h2>Class management</h2><p>Create a class with a seat capacity and admission fee.</p></div>
+                <div><p className="eyebrow">ADMISSIONS SETUP</p><h2>Class management</h2></div>
                 <button className="apply-button admin-add-button" onClick={() => setShowClassForm(!showClassForm)}>{showClassForm ? "Close form" : "+ Create class"}</button>
               </div>
               {showClassForm && (
@@ -542,13 +542,13 @@ function App() {
                 </form>
               )}
               <div className="admin-class-list">
-                <div className="admin-list-heading"><span>Class</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span><span></span></div>
+                <div className="admin-list-heading"><span>Class</span><span>Shift</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span><span>Students</span></div>
                 {loading ? <p className="applications-empty">Loading classes…</p> : classes.length === 0 ? <p className="applications-empty">No classes have been created yet.</p> : classes.map((admissionClass) => (
                   <div className="admin-list-row" key={admissionClass.id}>
                     <div className="admin-class-cell">
                       <strong>{displayClassName(admissionClass.name)}</strong>
-                      <span className="shift-tag">{shiftFor(admissionClass.name)}</span>
                     </div>
+                    <span className="shift-tag">{shiftFor(admissionClass.name)}</span>
                     <span>{admissionClass.totalSeats}</span>
                     <span>{admissionClass.confirmedSeats}</span>
                     <span>{admissionClass.heldSeats}</span>
