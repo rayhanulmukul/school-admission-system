@@ -490,7 +490,7 @@ function App() {
                         </div>
                       </div>
                       <div className="hold-actions">
-                        <button className="apply-button pay-button" disabled={busyHoldId === selectedHold.holdId} onClick={() => void payDemo(selectedHold)}>
+                        <button className="apply-button pay-button" disabled={busyHoldId === selectedHold.holdId || new Date(selectedHold.expiresAt).getTime() <= now} onClick={() => void payDemo(selectedHold)}>
                           {busyHoldId === selectedHold.holdId
                             ? "Processing…"
                             : selectedClass.admissionFee > 0
