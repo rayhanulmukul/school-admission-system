@@ -400,11 +400,14 @@ function App() {
                       <span><small>Admission fee</small><strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong></span>
                     </div>
                     {selectedHold?.status !== "CONFIRMED" && (
-                      <ol className="admission-guide" aria-label="How to get admitted">
-                        <li><span>1</span>Type your full name and birth registration number below, then click Submit &amp; apply.</li>
-                        <li><span>2</span>Your seat is reserved for you. Finish before the timer runs out.</li>
-                        <li><span>3</span>{selectedClass.admissionFee > 0 ? `Click Pay ${formatCurrency(selectedClass.admissionFee)} & complete` : "Click Complete admission"} to confirm your admission.</li>
-                      </ol>
+                      <div className="admission-guide-wrap">
+                        <p className="admission-guide-title">How to get admitted</p>
+                        <ol className="admission-guide" aria-label="How to get admitted">
+                          <li><span>1</span>Enter details</li>
+                          <li><span>2</span>Submit &amp; apply</li>
+                          <li><span>3</span>{selectedClass.admissionFee > 0 ? "Pay to confirm" : "Confirm"}</li>
+                        </ol>
+                      </div>
                     )}
                     {selectedHold?.status === "HELD" ? (
                       <div className="reserve-panel">

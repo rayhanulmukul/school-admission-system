@@ -123,6 +123,8 @@ h1,h2,h3,p { margin-top: 0; }
 .cancel-button { flex: 0 0 auto; min-height: 42px; padding: 0 18px; border: 1px solid #d9b9b0; border-radius: 6px; color: #9a3b2e; background: #fff; font-size: 12px; font-weight: 600; }
 .cancel-button:hover:not(:disabled) { background: #fdf3f0; }
 .cancel-button:disabled { cursor: not-allowed; opacity: .5; }
+.admission-guide-wrap { display: grid; gap: 6px; }
+.admission-guide-title { margin: 0; color: #20342a; font-size: 12px; font-weight: 700; }
 .admission-guide { display: grid; gap: 8px; margin: 0; padding: 12px 14px; list-style: none; border-radius: 8px; background: #f5f8f2; }
 .admission-guide li { display: flex; align-items: center; gap: 10px; color: #3b4a3f; font-size: 12px; }
 .admission-guide li > span { width: 20px; height: 20px; flex: 0 0 20px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--forest); font-size: 10px; font-weight: 700; }
