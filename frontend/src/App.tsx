@@ -456,20 +456,16 @@ function App() {
               <section className="applications-section" id="apply-section">
                 {selectedClass && (
                   <section id="selected-class-panel" className="selected-class-panel" aria-label="Selected class seat details">
-                    <div className="selected-class-title">
-                      <div>
-                        <h3>Class information</h3>
-                      </div>
-                      <span className={selectedClass.availableSeats > 0 ? "availability-tag" : "availability-tag full"}>
-                        {selectedClass.availableSeats > 0 ? "Seats Available" : "Class Full"}
-                      </span>
-                    </div>
                     <div className="selected-class-stats">
-                      <span><small>Total seats</small><strong>{selectedClass.totalSeats}</strong></span>
-                      <span><small>Available seats</small><strong className="green-text">{selectedClass.availableSeats}</strong></span>
-                      <span><small>Confirmed</small><strong>{selectedClass.confirmedSeats}</strong></span>
-                      <span><small>On hold</small><strong className="amber-text">{selectedClass.heldSeats}</strong></span>
-                      <span><small>Admission fee</small><strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong></span>
+                      <div className="class-stat">
+                        <small>Seats left</small>
+                        <strong className={selectedClass.availableSeats > 0 ? "green-text" : "amber-text"}>{selectedClass.availableSeats}</strong>
+                        <span>of {selectedClass.totalSeats}</span>
+                      </div>
+                      <div className="class-stat">
+                        <small>Admission fee</small>
+                        <strong>{selectedClass.admissionFee > 0 ? formatCurrency(selectedClass.admissionFee) : "No fee"}</strong>
+                      </div>
                     </div>
                     {selectedHold?.status === "HELD" ? (
                       <div className="reserve-panel">
@@ -499,17 +495,14 @@ function App() {
                       <div className="confirmed-panel"><span>✓</span><span><strong>Admission complete</strong><small>Payment received · {selectedClass.name}</small></span></div>
                     ) : (
                       <form className="reserve-form" onSubmit={(event) => { event.preventDefault(); void holdSeat(selectedClass); }}>
-                        <h4 className="reserve-form-heading">Fill up student information</h4>
+                        <h4 className="reserve-form-heading">Student details</h4>
                         <label>Student's full name
                           <input value={studentName} onChange={(event) => setStudentName(event.target.value)} placeholder="As written on the birth certificate" maxLength={100} autoComplete="name" required />
                         </label>
                         <label>Birth registration number
                           <input value={studentId} onChange={(event) => setStudentId(event.target.value)} placeholder="17-digit number from the birth certificate" maxLength={80} inputMode="numeric" autoComplete="off" required />
                         </label>
-                        <div className="apply-info-row">
-                          <span><small>Reservation time</small><strong>10 minutes</strong></span>
-                          <span><small>Payment</small><strong>{selectedClass.admissionFee > 0 ? `${formatCurrency(selectedClass.admissionFee)} after reserving (demo)` : "No fee"}</strong></span>
-                        </div>
+                        <p className="reserve-note">Seat is held for 10 minutes after you submit.{selectedClass.admissionFee > 0 ? ` Payment of ${formatCurrency(selectedClass.admissionFee)} follows (demo).` : ""}</p>
                         <button className="apply-button" type="submit" disabled={selectedClass.availableSeats <= 0 || busyHoldId === selectedClass.id}>
                           {busyHoldId === selectedClass.id ? "Submitting…" : "Submit & apply"} <span>→</span>
                         </button>
