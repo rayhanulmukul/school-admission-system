@@ -290,6 +290,22 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
         Assert.Equal(0, details.AvailableSeats);
     }
 
+    [Fact]
+    public async Task ConcurrentHoldRequests_AllowOnlyOneClassPerRegistrationNumber()
+    {
+        var classes = await Task.WhenAll(
+            CreateClassAsync("Class 15 - Morning Shift", 5),
+            CreateClassAsync("Class 15 - Day Shift", 5),
+            CreateClassAsync("Class 15 - Evening Shift", 5));
+        const string studentId = "race-student-15";
+
+        var responses = await Task.WhenAll(
+            classes.Select(admissionClass => CreateHoldAsync(admissionClass.Id, studentId)));
+
+        Assert.Equal(1, responses.Count(response => response.StatusCode == HttpStatusCode.Created));
+        Assert.Equal(2, responses.Count(response => response.StatusCode == HttpStatusCode.Conflict));
+    }
+
     private async Task<ClassResponse> CreateClassAsync(
         string name,
         int totalSeats,

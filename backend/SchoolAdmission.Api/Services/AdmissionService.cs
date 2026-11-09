@@ -122,6 +122,12 @@ public sealed class AdmissionService(
         CancellationToken cancellationToken)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
+
+        // Serializes concurrent applications for the same registration number across different classes.
+        await db.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtext({studentId}))",
+            cancellationToken);
+
         var admissionClass = await db.Classes
             .FromSqlInterpolated($"SELECT * FROM \"Classes\" WHERE \"Id\" = {classId} FOR UPDATE")
             .SingleOrDefaultAsync(cancellationToken);
