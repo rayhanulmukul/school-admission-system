@@ -29,6 +29,10 @@ function shiftFor(className: string) {
   return "Other";
 }
 
+function displayClassName(className: string) {
+  return className.replace(/\s*-\s*(Morning|Day|Evening) Shift$/i, "");
+}
+
 function App() {
   const [classes, setClasses] = useState<AdmissionClass[]>([]);
   const [holds, setHolds] = useState<StudentHold[]>([]);
@@ -493,13 +497,13 @@ function App() {
             </section>
           ) : activeView === "admitted" ? (
             <section className="admin-section">
-              <div className="admin-heading">
+              <div className="admin-heading admitted-heading">
                 <div>
-                  <button className="text-button admitted-back" onClick={() => setActiveView("admin")}>← Back to classes</button>
                   <p className="eyebrow">ADMITTED STUDENTS</p>
-                  <h2>{admittedClass?.name ?? "Class"}</h2>
+                  <h2>{admittedClass ? displayClassName(admittedClass.name) : "Class"} <span className="shift-tag">{admittedClass ? shiftFor(admittedClass.name) : ""}</span></h2>
                   <p>{loadingAdmitted ? "Loading…" : `${admittedStudents.length} admitted ${admittedStudents.length === 1 ? "student" : "students"}`}</p>
                 </div>
+                <button className="back-pill" onClick={() => setActiveView("admin")}>← Back to classes</button>
               </div>
               {loadingAdmitted ? <p className="applications-empty">Loading admitted students…</p> : admittedStudents.length === 0 ? <p className="applications-empty">No student has been admitted to this class yet.</p> : (
                 <div className="admin-admitted-page">
@@ -538,15 +542,18 @@ function App() {
                 </form>
               )}
               <div className="admin-class-list">
-                <div className="admin-list-heading"><span>Class</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span><span>Admitted</span></div>
+                <div className="admin-list-heading"><span>Class</span><span>Seats</span><span>Confirmed</span><span>On hold</span><span>Admission fee</span><span></span></div>
                 {loading ? <p className="applications-empty">Loading classes…</p> : classes.length === 0 ? <p className="applications-empty">No classes have been created yet.</p> : classes.map((admissionClass) => (
                   <div className="admin-list-row" key={admissionClass.id}>
-                    <strong>{admissionClass.name}</strong>
+                    <div className="admin-class-cell">
+                      <strong>{displayClassName(admissionClass.name)}</strong>
+                      <span className="shift-tag">{shiftFor(admissionClass.name)}</span>
+                    </div>
                     <span>{admissionClass.totalSeats}</span>
                     <span>{admissionClass.confirmedSeats}</span>
                     <span>{admissionClass.heldSeats}</span>
                     <span>{admissionClass.admissionFee > 0 ? formatCurrency(admissionClass.admissionFee) : "No fee"}</span>
-                    <button className="admin-view-icon" aria-label={`View admitted students in ${admissionClass.name}`} title="View admitted students" onClick={() => void openAdmitted(admissionClass)}>👁</button>
+                    <button className="view-pill" aria-label={`View admitted students in ${admissionClass.name}`} onClick={() => void openAdmitted(admissionClass)}>View <span aria-hidden="true">→</span></button>
                   </div>
                 ))}
               </div>
