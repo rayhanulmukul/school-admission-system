@@ -1,4 +1,16 @@
+using Microsoft.EntityFrameworkCore;
+using SchoolAdmission.Api.Data;
+
+
 var builder = WebApplication.CreateBuilder(args);
+
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Database connection string is missing.");
+
+builder.Services.AddDbContext<AdmissionDbContext>(options =>
+    options.UseNpgsql(connectionString));
 
 // Add services to the container.
 
