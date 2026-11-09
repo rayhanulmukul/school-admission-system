@@ -156,6 +156,12 @@ h1,h2,h3,p { margin-top: 0; }
 .application-status { padding: 5px 8px; border-radius: 20px; font-size: 8px; font-weight: 650; text-transform: capitalize; }
 .status-held { color: #936515; background: #fff3d9; }.status-confirmed { color: #27613a; background: #e7f2df; }.status-expired,.status-cancelled { color: #697168; background: #edf0ec; }
 .text-button { padding: 6px; border: 0; color: #17613a; background: transparent; font-size: 9px; font-weight: 600; }
+.status-lookup { margin-top: 16px; padding-top: 14px; border-top: 1px solid #edf0ea; }
+.status-lookup .eyebrow { margin: 0 0 8px; }
+.status-lookup-form { display: flex; gap: 8px; max-width: 420px; }
+.status-lookup-form input { flex: 1; min-width: 0; height: 38px; padding: 0 11px; border: 1px solid #dfe4dc; border-radius: 6px; font-size: 11px; }
+.status-lookup-form .apply-button { width: auto; padding: 0 16px; }
+.form-error { margin: 8px 0 0; color: #a13a2b; font-size: 10px; }
 
 .admin-section { padding: 18px; border: 1px solid #e5e7df; border-radius: 9px; background: #fff; }
 .admin-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

@@ -1,9 +1,9 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { api, AdmissionClass, StudentHold } from "./api";
 
-type View = "admissions" | "admin";
+type View = "admissions" | "applications" | "admin";
 
-const profileStorageKey = "banani-admission-profile";
+const legacyPersonalKeys = ["banani-admission-profile", "admission-student-id"];
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-BD", {
@@ -30,22 +30,10 @@ function shiftFor(className: string) {
 }
 
 function App() {
-  const savedProfile = useMemo(() => {
-    try {
-      return JSON.parse(window.localStorage.getItem(profileStorageKey) ?? "{}") as {
-        name?: string;
-        studentId?: string;
-      };
-    } catch {
-      return {};
-    }
-  }, []);
   const [classes, setClasses] = useState<AdmissionClass[]>([]);
   const [holds, setHolds] = useState<StudentHold[]>([]);
-  const [studentName, setStudentName] = useState(savedProfile.name ?? "");
-  const [studentId, setStudentId] = useState(
-    savedProfile.studentId ?? window.localStorage.getItem("admission-student-id") ?? "",
-  );
+  const [studentName, setStudentName] = useState("");
+  const [studentId, setStudentId] = useState("");
   const [activeView, setActiveView] = useState<View>("admissions");
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -60,6 +48,10 @@ function App() {
   const [busyHoldId, setBusyHoldId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [lookupId, setLookupId] = useState("");
+  const [lookupHolds, setLookupHolds] = useState<StudentHold[] | null>(null);
+  const [lookupBusy, setLookupBusy] = useState(false);
+  const [lookupError, setLookupError] = useState("");
 
   const refreshClasses = useCallback(async () => {
     setClasses(await api.getClasses());
@@ -69,41 +61,67 @@ function App() {
     setHolds(id.trim() ? await api.getHolds(id.trim()) : []);
   }, []);
 
-  const refresh = useCallback(async (id = studentId) => {
+  function renderApplicationRow(hold: StudentHold) {
+    const statusLabel: Record<StudentHold["status"], string> = {
+      HELD: "Reserved",
+      CONFIRMED: "Admitted",
+      EXPIRED: "Expired",
+      CANCELLED: "Cancelled",
+    };
+    return (
+      <article className="application-row" key={hold.holdId}>
+        <span className="application-mark">▤</span>
+        <span className="application-info">
+          <strong>{hold.className}</strong>
+          {hold.status === "HELD" && <small>Time left <span className="hold-timer">{formatRemaining(hold.expiresAt, now)}</span></small>}
+        </span>
+        <span className={`application-status status-${hold.status.toLowerCase()}`}>{statusLabel[hold.status]}</span>
+      </article>
+    );
+  }
+
+  async function checkApplicationStatus(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const id = lookupId.trim();
+    if (!id) return;
+    setLookupBusy(true);
+    setLookupError("");
+    try {
+      setLookupHolds(await api.getHolds(id));
+    } catch (requestError) {
+      setLookupHolds(null);
+      setLookupError(requestError instanceof Error ? requestError.message : "Could not check status.");
+    } finally {
+      setLookupBusy(false);
+    }
+  }
+
+  const refresh = useCallback(async () => {
     setError("");
     try {
-      await Promise.all([refreshClasses(), refreshHolds(id)]);
+      await refreshClasses();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Could not load admission data.");
     } finally {
       setLoading(false);
     }
-  }, [refreshClasses, refreshHolds, studentId]);
+  }, [refreshClasses]);
 
   useEffect(() => {
     void refresh();
   }, [refresh]);
 
-  const hasActiveHold = holds.some((hold) => hold.status === "HELD");
+  useEffect(() => {
+    legacyPersonalKeys.forEach((key) => window.localStorage.removeItem(key));
+  }, []);
+
+  const hasActiveHold = holds.some((hold) => hold.status === "HELD")
+    || (lookupHolds ?? []).some((hold) => hold.status === "HELD");
   useEffect(() => {
     if (!hasActiveHold) return;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, [hasActiveHold]);
-
-  useEffect(() => {
-    const profile = { name: studentName, studentId: studentId.trim() };
-    window.localStorage.setItem(profileStorageKey, JSON.stringify(profile));
-    if (profile.studentId) {
-      window.localStorage.setItem("admission-student-id", profile.studentId);
-      void refreshHolds(profile.studentId).catch((requestError: unknown) => {
-        setError(requestError instanceof Error ? requestError.message : "Could not load applications.");
-      });
-    } else {
-      window.localStorage.removeItem("admission-student-id");
-      setHolds([]);
-    }
-  }, [studentName, studentId, refreshHolds]);
 
   const counts = useMemo(() => classes.reduce(
     (total, admissionClass) => ({
@@ -205,14 +223,6 @@ function App() {
     }
   }
 
-  function navigateToApplications() {
-    setActiveView("admissions");
-    window.setTimeout(
-      () => document.getElementById("my-applications")?.scrollIntoView({ behavior: "smooth" }),
-      0,
-    );
-  }
-
   return (
     <div className="portal-shell">
       <header className="topbar">
@@ -236,7 +246,14 @@ function App() {
           >
             <span className="side-icon">⌂</span> Explore Classes
           </button>
-          <button className="side-link" title="My Applications" onClick={navigateToApplications}>
+          <button
+            className={activeView === "applications" ? "side-link selected" : "side-link"}
+            title="My Applications"
+            onClick={() => {
+              setActiveView("applications");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
             <span className="side-icon">▤</span> My Applications
             {holds.some((hold) => hold.status === "HELD") && <span className="side-count">!</span>}
           </button>
@@ -307,14 +324,10 @@ function App() {
                       const occupiedPercent = admissionClass.totalSeats
                         ? Math.round((occupied / admissionClass.totalSeats) * 100)
                         : 0;
-                      const studentHold = holds.find((hold) =>
-                        hold.classId === admissionClass.id &&
-                        (hold.status === "HELD" || hold.status === "CONFIRMED"));
-
                       return (
                         <article
                           id={`class-${admissionClass.id}`}
-                          className={`class-card${studentHold ? " has-application" : ""}${selectedClass?.id === admissionClass.id ? " is-selected" : ""}`}
+                          className={`class-card${selectedClass?.id === admissionClass.id ? " is-selected" : ""}`}
                           key={admissionClass.id}
                           onClick={() => setSelectedClassId(admissionClass.id)}
                         >
@@ -352,9 +365,8 @@ function App() {
 
               </section>
 
-              <section className="applications-section" id="my-applications">
-                <div className="section-title-row"><div><p className="eyebrow">YOUR ADMISSION JOURNEY</p><h2>My applications</h2></div><button className="refresh-button" onClick={() => void refresh()}>↻ Refresh</button></div>
-
+              {selectedClass && (
+              <section className="applications-section" id="apply-section">
                 {selectedClass && (
                   <section id="selected-class-panel" className="selected-class-panel" aria-label="Selected class seat details">
                     <div className="selected-class-title">
@@ -409,24 +421,35 @@ function App() {
                   </section>
                 )}
 
-                {!studentId.trim() ? (
-                  <p className="applications-empty">Select a class above and submit your details to start an application.</p>
-                ) : holds.length === 0 ? (
-                  <p className="applications-empty">Your class reservations will appear here.</p>
-                ) : (
-                  <div className="application-list">
-                    {holds.map((hold) => (
-                      <article className="application-row" key={hold.holdId}>
-                        <span className="application-mark">▤</span>
-                        <span className="application-info"><strong>{hold.className}</strong><small>Application {hold.holdId.slice(0, 10)}…</small></span>
-                        <span className={`application-status status-${hold.status.toLowerCase()}`}>{hold.status.toLowerCase()}</span>
-                        {hold.status === "HELD" && <button className="text-button" onClick={() => setSelectedClassId(hold.classId)}>Continue checkout ↓</button>}
-                      </article>
-                    ))}
-                  </div>
-                )}
               </section>
+              )}
             </>
+          ) : activeView === "applications" ? (
+            <section className="applications-section" id="my-applications">
+              <div className="section-title-row">
+                <div><p className="eyebrow">ADMISSION STATUS</p><h2>My applications</h2></div>
+              </div>
+              <form className="status-lookup-form" onSubmit={(event) => void checkApplicationStatus(event)}>
+                <input value={lookupId} onChange={(event) => setLookupId(event.target.value)} placeholder="Birth registration number" maxLength={80} inputMode="numeric" autoComplete="off" aria-label="Birth registration number" />
+                <button className="apply-button" type="submit" disabled={lookupBusy || !lookupId.trim()}>{lookupBusy ? "Checking…" : "Check"}</button>
+              </form>
+              {lookupError && <p className="form-error">{lookupError}</p>}
+              {lookupHolds && (lookupHolds.length === 0 ? (
+                <p className="applications-empty">No application found for this registration number.</p>
+              ) : (
+                <>
+                  {lookupHolds.find((hold) => hold.status === "CONFIRMED") && (
+                    <div className="confirmed-panel">
+                      <span>✓</span>
+                      <span><strong>Admitted to {lookupHolds.find((hold) => hold.status === "CONFIRMED")?.className}</strong></span>
+                    </div>
+                  )}
+                  <div className="application-list">
+                    {lookupHolds.map((hold) => renderApplicationRow(hold))}
+                  </div>
+                </>
+              ))}
+            </section>
           ) : (
             <section className="admin-section">
               <div className="admin-heading">

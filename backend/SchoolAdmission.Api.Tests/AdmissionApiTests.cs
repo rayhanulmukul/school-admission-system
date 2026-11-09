@@ -48,6 +48,20 @@ public sealed class AdmissionApiTests(AdmissionApiFixture fixture)
     }
 
     [Fact]
+    public async Task Hold_BlocksSecondClassWhileStudentHasActiveApplication()
+    {
+        var firstClass = await CreateClassAsync("Class 9 - Morning Shift", 5);
+        var secondClass = await CreateClassAsync("Class 10 - Day Shift", 5);
+
+        Assert.Equal(
+            HttpStatusCode.Created,
+            (await CreateHoldAsync(firstClass.Id, "student-multi")).StatusCode);
+        Assert.Equal(
+            HttpStatusCode.Conflict,
+            (await CreateHoldAsync(secondClass.Id, "student-multi")).StatusCode);
+    }
+
+    [Fact]
     public async Task ConfirmHold_UpdatesStudentHistoryAndSeatCounts()
     {
         var admissionClass = await CreateClassAsync("Class 7 - Day Shift", 1);

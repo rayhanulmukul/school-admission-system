@@ -106,15 +106,15 @@ public sealed class AdmissionService(
         var now = timeProvider.GetUtcNow();
         await ExpireClassHoldsAsync(classId, now, cancellationToken);
 
-        var existingHold = await db.Holds.AnyAsync(
-            hold => hold.ClassId == classId
-                && hold.StudentId == studentId
-                && (hold.Status == HoldStatus.Confirmed || hold.Status == HoldStatus.Held),
+        var hasActiveApplication = await db.Holds.AnyAsync(
+            hold => hold.StudentId == studentId
+                && (hold.Status == HoldStatus.Confirmed
+                    || (hold.Status == HoldStatus.Held && hold.ExpiresAt > now)),
             cancellationToken);
-        if (existingHold)
+        if (hasActiveApplication)
         {
             throw new AdmissionConflictException(
-                "This student already has an active hold or confirmed seat for this class.");
+                "This registration number already has an active application or confirmed admission in another class.");
         }
 
         var occupiedSeats = await db.Holds.CountAsync(
